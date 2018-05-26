@@ -1,0 +1,42 @@
+{
+	"name": "pawn-scripting-language-support",
+	"displayName": "Pawn Scripting Language Support",
+	"description": "Pawn Scripting Language Support for VS Code",
+	"version": "0.0.5",
+	"publisher": "dcealopez",
+	"icon": "icono.png",
+	"engines": {
+		"vscode": "^1.5.0"
+	},
+	"categories": [
+		"Languages"
+	],
+	"contributes": {
+		"languages": [
+			{
+				"id": "pawn",
+				"aliases": [
+					"Pawn",
+					"pawn"
+				],
+				"extensions": [
+					".pwn",
+					".inc"
+				],
+				"configuration": "./language-configuration.json"
+			}
+		],
+		"grammars": [
+			{
+				"language": "pawn",
+				"scopeName": "source.pwn",
+				"path": "./syntaxes/pawn.tmLanguage.json"
+			}
+		]
+	},
+	"__metadata": {
+		"id": "4a13fea7-032e-4d50-a470-01dce5269e2b",
+		"publisherId": "03578886-f46d-4aef-aa7b-bc22b3a38064",
+		"publisherDisplayName": "Diego Cea"
+	}
+}

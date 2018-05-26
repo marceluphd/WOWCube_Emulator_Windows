@@ -1,0 +1,17 @@
+*.amx
+*.log
+VSCode/Data/code/Backups/*
+VSCode/Data/code/Cache/*
+VSCode/Data/code/CachedData/*
+VSCode/Data/code/CachedExtensions/*
+VSCode/Data/code/GPUCache/*
+VSCode/Data/code/Local\ Storage/*
+VSCode/Data/code/logs/*
+VSCode/Data/code/User/workspaceStorage/*
+VSCode/Data/code/Cookies
+VSCode/Data/code/Cookies-journal
+VSCode/Data/code/languagepacks.json
+VSCode/Data/code/machineid
+VSCode/Data/code/Preferences
+VSCode/Data/code/storage.json
+VSCode/Data/Temp/*

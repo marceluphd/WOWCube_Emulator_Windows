@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="file:///D|/Products/Pawn/xml/pawndoc.xsl" type="text/xsl"?>
+<doc source="D:\Products\Pawn\examples\hanoi.p">
+	<assembly>
+		<name>hanoi.p</name>
+	</assembly>
+	<members>
+
+		<!-- enumerated constants -->
+
+		<!-- constants -->
+
+		<!-- variables -->
+
+		<!-- functions -->
+		<member name="M:getvalue" syntax="getvalue(base, term, ...)">
+			<attribute name="native"/>
+			<location file="D:\Products\Pawn\include\console.inc" line="22"/>
+			<referrer name="main"/>
+			<param name="base">
+			</param>
+			<param name="term">
+			</param>
+			<param name="...">
+			</param>
+		</member>
+		<member name="M:main" syntax="main()">
+			<attribute name="init"/>
+			<stacksize value="8"/>
+			<location file="D:\Products\Pawn\examples\hanoi.p" line="3"/>
+			<dependency name="getvalue"/>
+			<dependency name="move"/>
+			<dependency name="print"/>
+		</member>
+		<member name="M:move" syntax="move(from, to, spare, numdisks)">
+			<stacksize value="7"/>
+			<location file="D:\Products\Pawn\examples\hanoi.p" line="10"/>
+			<referrer name="main"/>
+			<referrer name="move"/>
+			<dependency name="printf"/>
+			<param name="from">
+			</param>
+			<param name="to">
+			</param>
+			<param name="spare">
+			</param>
+			<param name="numdisks">
+			</param>
+		</member>
+		<member name="M:print" syntax="print(string[], foreground, background, highlight)">
+			<attribute name="native"/>
+			<location file="D:\Products\Pawn\include\console.inc" line="23"/>
+			<referrer name="main"/>
+			<param name="string">
+				<paraminfo> [] </paraminfo>
+			</param>
+			<param name="foreground">
+			</param>
+			<param name="background">
+			</param>
+			<param name="highlight">
+			</param>
+		</member>
+		<member name="M:printf" syntax="printf(format[], ...)">
+			<attribute name="native"/>
+			<location file="D:\Products\Pawn\include\console.inc" line="24"/>
+			<referrer name="move"/>
+			<param name="format">
+				<paraminfo> [] </paraminfo>
+			</param>
+			<param name="...">
+				<paraminfo> {Float,Fixed,_} </paraminfo>
+			</param>
+		</member>
+
+	</members>
+</doc>
