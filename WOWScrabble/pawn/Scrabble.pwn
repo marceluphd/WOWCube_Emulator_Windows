@@ -270,11 +270,14 @@ ReadDictionary(){
         new in = 0;
         while ( fread(dictionary, string) ) {
             in = strlen(string);
-            strdel(string, in-1, in+1);
+            strdel(string, in-2, in+1);
+            //printf("%s-%d|",string, in);
             strcat(allWords[i++][0], string, in);
+            //printf("%s|",allWords[i++]);
         }
     }
     fclose (dictionary);
+    printf("close dictionary");
 }
 
 onCubeAttach() {
