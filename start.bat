@@ -1,2 +1,2 @@
-cd .\WOWCube
+cd .\WOWScrabble
 ..\VSCode\VSCodePortable.exe .
