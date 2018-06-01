@@ -4,7 +4,7 @@ UDP udp;
 final int FSP = 260; // FACE_SIZE_PIXELS
 final int SSP = 240; // SCREEN_SIZE_PIXELS
 final int CUBES = 8;
-final int FPC = 3; // FACES_PER_CUBE
+final int FPC = 3  ; // FACES_PER_CUBEnt FPC = 3  ; // FACES_PER_CUBE
 
 float camRotX = 0; // in degrees!
 float camRotY = 0;
@@ -42,6 +42,7 @@ final byte CMD_PAWN_DEBUG  = CMD_PAWN_BASE + 1;
 final byte CMD_TICK        = CMD_PAWN_BASE + 2;
 final byte CMD_DETACH      = CMD_PAWN_BASE + 3;
 final byte CMD_ATTACH      = CMD_PAWN_BASE + 4; // CMD_ATTACH, TODO:positions matrix here
+final byte TICK_DELAY      = 100; //Tick Deley in milliseconds
 
 class CDisplay
 {
@@ -644,7 +645,7 @@ class CGamePipesLogic
   final int PIPES_BASE=0;
   final int STEAM_BASE=16;
   final int PIPES_COUNT=16;
-  final int STEAM_COUNT=9;
+  final int STEAM_COUNT=36;
 
   private int steam_frame=0; // see tick()
   private int solved_angle=0; // see tick()
@@ -1081,13 +1082,18 @@ class CPawnLogic // interface to/from Pawn
   final private int PIPES_BASE=0;
   final private int STEAM_BASE=16;
   final private int PIPES_COUNT=16;
-  final private int STEAM_COUNT=9;
+  final private int STEAM_COUNT=36;
  
   private PImage res[] = new PImage[PIPES_COUNT+STEAM_COUNT]; // resources
+  //private PImage res[];
   private ArrayList<CPawnCmd> pawn_cmd_queue = new ArrayList<CPawnCmd>(); 
   
   CPawnLogic()
   {
+    //res[] = new PImage[PIPES_COUNT+STEAM_COUNT];
+    //File f = new File("Resources");
+    //File[] files = f.listFiles();
+    //println(files);
     // Load resources
     for(int i=PIPES_BASE; i<PIPES_COUNT; i++) res[i] = loadImage("pipes/"+binary(i,4)+".png");
     for(int i=STEAM_BASE; i<(STEAM_BASE+STEAM_COUNT); i++) res[i] = loadImage("steam/"+(i-STEAM_BASE+1)+".png");
@@ -1144,6 +1150,9 @@ class CPawnLogic // interface to/from Pawn
   
   void tick() // on timer
   {
+    byte[] data = new byte[1];
+    data[0] = CMD_TICK;
+    for(int i=0; i<CUBES; i++) udp.send(data, PAWN_HOST, PAWN_PORT_BASE+i);
   }
   
   void onCsDetach() // cubeset detached (rotate anim started) 
@@ -1200,7 +1209,7 @@ void draw()
   background(230);
   noStroke();
   
-  if(millis() - timer >= 100)
+  if(millis() - timer >= TICK_DELAY)
   {
     logic.tick();
     timer = millis();

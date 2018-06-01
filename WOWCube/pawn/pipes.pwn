@@ -6,6 +6,13 @@
 #define PIPES_COUNT 16
 #define STEAM_COUNT 9
 
+new steam_draw [FACES_PER_CUBE];//Check to draw steam
+new steam_frame[FACES_PER_CUBE][RIBS_PER_CUBE];//resID of steam to draw
+new steam_angle[FACES_PER_CUBE];
+new steam_count_base[RIBS_PER_CUBE];
+new steam_x[RIBS_PER_CUBE];
+new steam_y[RIBS_PER_CUBE];
+
 new const level[PROJECTION_MAX_X][PROJECTION_MAX_Y] = [
   [ 0,  0,  0,  0,  0,  0],
   [ 0,  0, 12,  6,  0,  0],
@@ -62,7 +69,6 @@ drawInterPipesConnector(x, y, _resID)
     case 1: { abi_CMD_BITMAP(faceN, resID, 0, 240/2-120/2); } // left 0001
   }
 }
-
 isFace(x, y) // is face in Projection Matrix is out-of-bound or empty field or normal cube's face
 {
   if((x < 0) || (x >= PROJECTION_MAX_X)) return 0;
@@ -105,7 +111,6 @@ onCubeAttach()
   new pipesResIDOriginal[CUBES_MAX][FACES_PER_CUBE];
   new thisFigure = 0;
   new compareFigure = 0;
-
   // I know that calculate all the game field is quite NOT RATIONAL :(
   for(cubeN=0; cubeN<CUBES_MAX; cubeN++)
   {
@@ -118,14 +123,16 @@ onCubeAttach()
       pipesResIDRotated[cubeN][faceN] = rotateFigureBitwise(level[x][y], a);
       abi_FacePositionAtProjection(cubeN, faceN, x_real, y_real, a_real);
       pipesResIDRotatedForPipes[cubeN][faceN] = rotateFigureBitwisePipes(level[x][y], a-a_real);
+      if (cubeN==abi_cubeN)
+        steam_angle[faceN]=a_real;
     }
   }
   // Draw a part of level on this cube's face 0-2
-  for(faceN=0; faceN<3; faceN++)
+  for(faceN=0; faceN<FACES_PER_CUBE; faceN++)
   {
+    steam_draw[faceN]=0;
     abi_CMD_BITMAP(faceN, pipesResIDRotated[abi_cubeN][faceN], 0, 0);
   }
-  
   // Check if top or right neighbors are connected
   for(x=0; x<PROJECTION_MAX_X; x++)
   {
@@ -148,6 +155,8 @@ onCubeAttach()
           compareFigure = pipesResIDRotatedForPipes[abi_pm[x][y+1][0]][abi_pm[x][y+1][1]];
           if (hasTopPipe(thisFigure) && (hasBottomPipe(compareFigure)))
             drawInterPipesConnector(x, y, 8); // 1000 = 8 = top pipe connector
+          if (!hasTopPipe(thisFigure) && (hasBottomPipe(compareFigure)))
+            steam_draw[abi_pm[x][y][1]]+=8;
         }
         else
         {
@@ -160,12 +169,16 @@ onCubeAttach()
           compareFigure = pipesResIDRotatedForPipes[abi_pm[x][y-1][0]][abi_pm[x][y-1][1]];
           if (hasBottomPipe(thisFigure) && (hasTopPipe(compareFigure)))
             drawInterPipesConnector(x, y, 2); // 0010 = 2 = bottom pipe connector
+          if (!hasBottomPipe(thisFigure) && (hasTopPipe(compareFigure)))
+            steam_draw[abi_pm[x][y][1]]+=2;
         }
         if (isFace(x+1,y))//Check Right figure
         {
           compareFigure = pipesResIDRotatedForPipes[abi_pm[x+1][y][0]][abi_pm[x+1][y][1]];
           if (hasRightPipe(thisFigure) && hasLeftPipe(compareFigure))
             drawInterPipesConnector(x,y,4); // 0100 = 4 = rigth pipe connector
+          if (!hasRightPipe(thisFigure) && hasLeftPipe(compareFigure))
+            steam_draw[abi_pm[x][y][1]]+=4;
         }
         else
         {
@@ -177,6 +190,8 @@ onCubeAttach()
           compareFigure = pipesResIDRotatedForPipes[abi_pm[x-1][y][0]][abi_pm[x-1][y][1]];
           if (hasLeftPipe(thisFigure) && (hasRightPipe(compareFigure)))
             drawInterPipesConnector(x, y, 1); // 0001 = 1 = left pipe connector
+          if (!hasLeftPipe(thisFigure) && (hasRightPipe(compareFigure)))
+            steam_draw[abi_pm[x][y][1]]+=1;
         }
       }
       /*
@@ -196,12 +211,79 @@ onCubeAttach()
     }
   }
 }
+drawSteam()
+{
+  for(new faceN=0; faceN<FACES_PER_CUBE; faceN++)
+  {
+    
+    for(new ribN=0; ribN<RIBS_PER_CUBE; ribN++)
+    {
+      if (steam_frame[faceN][ribN]==STEAM_COUNT)
+        steam_frame[faceN][ribN]=0;
+      if (steam_frame[faceN][ribN]==0 && hasSteam(steam_draw[faceN],ribN))
+        steam_frame[faceN][ribN]=1;
+      if (steam_frame[faceN][ribN]==5 && hasSteam(steam_draw[faceN],ribN))
+        steam_frame[faceN][ribN]=3;
+      steam_count_base[ribN]=ribN;
+      
+      if (ribN==0)
+        switch(steam_angle[faceN])
+        {
+          case 270: {steam_count_base[ribN]=3; steam_x[ribN]=240/2-120/2; steam_y[ribN]=0;}
+          case 180: {steam_count_base[ribN]=0; steam_x[ribN]=0; steam_y[ribN]=0;}
+          case  90: {steam_count_base[ribN]=1; steam_x[ribN]=0; steam_y[ribN]=0;}
+          case   0: {steam_count_base[ribN]=2; steam_x[ribN]=0; steam_y[ribN]=120/2;} 
+        }
+      if (ribN==1)
+        switch(steam_angle[faceN])
+        {
+          case 270: {steam_count_base[ribN]=2; steam_x[ribN]=0; steam_y[ribN]=120/2;}
+          case 180: {steam_count_base[ribN]=3; steam_x[ribN]=120/2; steam_y[ribN]=0;}
+          case  90: {steam_count_base[ribN]=0; steam_x[ribN]=0; steam_y[ribN]=0;}
+          case   0: {steam_count_base[ribN]=1; steam_x[ribN]=0; steam_y[ribN]=0;} 
+        }
+      if (ribN==2)
+        switch(steam_angle[faceN])
+        {
+          case 270: {steam_count_base[ribN]=1; steam_x[ribN]=0; steam_y[ribN]=0;}
+          case 180: {steam_count_base[ribN]=2; steam_x[ribN]=0; steam_y[ribN]=120/2;}
+          case  90: {steam_count_base[ribN]=3; steam_x[ribN]=240/2-120/2; steam_y[ribN]=0;}
+          case   0: {steam_count_base[ribN]=0; steam_x[ribN]=0; steam_y[ribN]=0;} 
+        }
+      if (ribN==3)
+        switch(steam_angle[faceN])
+        {
+          case 270: {steam_count_base[ribN]=0; steam_x[ribN]=0; steam_y[ribN]=0;}
+          case 180: {steam_count_base[ribN]=1; steam_x[ribN]=0; steam_y[ribN]=0;}
+          case  90: {steam_count_base[ribN]=2; steam_x[ribN]=0; steam_y[ribN]=240/2-120/2;}
+          case   0: {steam_count_base[ribN]=3; steam_x[ribN]=120/2; steam_y[ribN]=0;} 
+        }
+      if (steam_frame[faceN][ribN]>0)
+      {
+        abi_CMD_BITMAP(faceN, STEAM_BASE + steam_count_base[ribN]*STEAM_COUNT + steam_frame[faceN][ribN], steam_x[ribN], steam_y[ribN]);
+        steam_frame[faceN][ribN]++;
+      }
+    }
+  }
+}
+
+hasSteam(figure, shift)
+{
+  return((figure >> shift) & 0x1);
+}
+onTick()
+{
+  onCubeAttach();
+  drawSteam();
+}
 
 onCubeDetach()
 {
   //abi_CMD_FILL(0,255,0,0);
   //abi_CMD_FILL(1,0,255,0);
   //abi_CMD_FILL(2,0,0,255);
+  for(new faceN=0; faceN<FACES_PER_CUBE; faceN++)
+    steam_draw[faceN]=0;
 }
 
 run(const pkt[], size, const src[])
@@ -217,8 +299,8 @@ run(const pkt[], size, const src[])
 
     case CMD_TICK:
     {
-      printf("[%s] CMD_TICK\n", src);
-      
+      //printf("[%s] CMD_TICK\n", src);
+      onTick();
     }
 
     case CMD_ATTACH:
@@ -228,6 +310,7 @@ run(const pkt[], size, const src[])
       abi_DeserializePositonsMatrix(pkt);
       abi_LogPositionsMatrix(); // DEBUG
       onCubeAttach();
+      printf("Draw0=%d Draw1=%d Draw2=%d",steam_draw[0],steam_draw[1],steam_draw[2]);
     }
 
     case CMD_DETACH:
