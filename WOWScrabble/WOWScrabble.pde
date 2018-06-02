@@ -1,4 +1,5 @@
 import hypermedia.net.*;
+//import processing.sound.*;
 UDP udp;
 
 final int FSP = 260; // FACE_SIZE_PIXELS
@@ -15,6 +16,8 @@ CCubeSet cs;
 CDebugPanel dp;
 CPawnLogic logic;
 CGameScrabble game_logic;
+
+//SoundFile makeWordSound;
 
 enum animType
 {
@@ -44,7 +47,6 @@ final byte CMD_TICK        = CMD_PAWN_BASE + 2;
 final byte CMD_DETACH      = CMD_PAWN_BASE + 3;
 final byte CMD_ATTACH      = CMD_PAWN_BASE + 4; // CMD_ATTACH, TODO:positions matrix here
 
-// Класс дисплея на кубике. Вызывается классом Face
 class CDisplay
 {
   CFace pface; // backlink to parent Face
@@ -124,7 +126,6 @@ class CDisplay
   }
 }
 
-// Класс стороны кубика вызывается классом CCube
 class CFace
 {
   public CCube pcube; // backlink to parent Cube
@@ -197,7 +198,6 @@ class CFace
   }
 }
 
-// Класс кубика, их 8.
 class CCube
 {
   public int cubeN;
@@ -265,7 +265,6 @@ class CCube
   }
 }
 
-// Класс самого ВоВкуба
 class CCubeSet
 {
   public CCube[] c;
@@ -285,34 +284,34 @@ class CCubeSet
     /* | */ {{-1,-1}, {-1,-1}, { 7, 0}, { 4, 0}, {-1,-1}, {-1,-1}},
     /* V */ {{-1,-1}, {-1,-1}, { 6, 0}, { 5, 0}, {-1,-1}, {-1,-1}},
   };
-  /*
+  
   public final short pam[][] = // constant "projection angle matrix" 8x6-24, i.e. "how to rotate HW faces to get flat 2D field" ;-)
   {
     /////// ----- Y ------>
-    /* | / {0,     0,  90, 180,   0,   0},
-    /* | / {0,     0,   0, 270,   0,   0},
-    /* | / {90,  180,  90, 180,  90, 180},
-    /* X / {0,   270,   0, 270,   0, 270},
-    /* | / {0,     0,  90, 180,   0,   0},
-    /* | / {0,     0,   0, 270,   0,   0},
-    /* | / {0,     0,  90, 180,   0,   0},
-    /* V / {0,     0,   0, 270,   0,   0},
+    /* | */ {0,     0,  90, 180,   0,   0},
+    /* | */ {0,     0,   0, 270,   0,   0},
+    /* | */ {90,  180,  90, 180,  90, 180},
+    /* X */ {0,   270,   0, 270,   0, 270},
+    /* | */ {0,     0,  90, 180,   0,   0},
+    /* | */ {0,     0,   0, 270,   0,   0},
+    /* | */ {0,     0,  90, 180,   0,   0},
+    /* V */ {0,     0,   0, 270,   0,   0},
   };
-  */
-  // constant "projection angle matrix" 8x6-24, i.e. "how to rotate HW faces to get flat 2D field" ;-)
+  /*
+  // Rotation for demo
   public final short pam[][] = 
   {
     /////// ----- Y ------>
-    /* | */ {0,     0, 270, 180,   0,   0},
-    /* | */ {0,     0,   0,  90,   0,   0},
-    /* | */ {270, 180, 270, 180, 270, 180},
-    /* X */ {0,    90,   0,  90,   0,  90},
-    /* | */ {0,     0, 270, 180,   0,   0},
-    /* | */ {0,     0,   0,  90,   0,   0},
-    /* | */ {0,     0, 270, 180,   0,   0},
-    /* V */ {0,     0,   0,  90,   0,   0},
+    /* | / {0,     0, 270, 180,   0,   0},
+    /* | / {0,     0,   0,  90,   0,   0},
+    /* | / {270, 180, 270, 180, 270, 180},
+    /* X / {0,    90,   0,  90,   0,  90},
+    /* | / {0,     0, 270, 180,   0,   0},
+    /* | / {0,     0,   0,  90,   0,   0},
+    /* | / {0,     0, 270, 180,   0,   0},
+    /* V / {0,     0,   0,  90,   0,   0},
   };
-
+ */
   private int animAngle = 0;
   private int animSpeed = 5;
   
@@ -469,7 +468,7 @@ class CCubeSet
       }
     }
   }
- /*
+  /*
   void anim_X_CW_begin()  { println ("anim_X_CW_begin");  anim = animType.ANIM_X_CW;  game_logic.onCsDetach(); } // w
   void anim_X_CCW_begin() { println ("anim_X_CCW_begin"); anim = animType.ANIM_X_CCW; game_logic.onCsDetach(); } // s
   void anim_Y_CW_begin()  { println ("anim_Y_CW_begin");  anim = animType.ANIM_Y_CW;  game_logic.onCsDetach(); } // q
@@ -605,9 +604,10 @@ class CCubeSet
   private void onAnyAnimEnd(char axis)
   {
     println("onAnyAnimEnd axis");
+    animType temp = anim;
     anim = animType.ANIM_NONE;
     logic.onCsAttach();
-    //game_logic.onCsAttach(axis);
+    //game_logic.onCsAttach(axis, temp);
     //printPositionMatrix();
   }
 
@@ -626,7 +626,6 @@ class CCubeSet
   }
 }
 
-// Класс вывода кубика в 2д
 class CDebugPanel
 {
   final float scale = 0.25; // scale of model
@@ -686,12 +685,18 @@ class CGameScrabble {
     
     private PFont fontForWinText = createFont("Courier New Bold", 60);
     
-    final int ALPHABET_COUNT = 26;
+    final byte ALPHABET_COUNT = 26;
     final int STEAM_BASE = 0;
 
     private int steam_frame  = 0; // see tick()
     private int solved_angle = 0; // see tick()
     private int _wordsIndex  = 0; // For availableWords array. It's workaround cause lack of generic array.
+    
+    private boolean rotation = false;
+    private animType rotationAxis = animType.ANIM_NONE;
+    private int letterRotationAngle = 0;
+    private boolean resizeImage = false;
+    private int score = 0;
 
     PImage res[] = new PImage[ALPHABET_COUNT]; // resources
     
@@ -700,22 +705,32 @@ class CGameScrabble {
     private String _allWords[];
     
     private int _gf[/*cubeID*/][/*faceID*/] = new int[CUBES][FPC]; // Game Field
+    private byte faces2Change[][] = {
+      {-1,-1,-1},
+      {-1,-1,-1},
+      {-1,-1,-1},
+      {-1,-1,-1},
+      {-1,-1,-1},
+      {-1,-1,-1},
+      {-1,-1,-1},
+      {-1,-1,-1}
+    };
 
     private FoundedWords _fw[];
     
     CGameScrabble () {      
         println("CGameScrabble constructor");
         // Load resources
-        for (int i = 0; i < ALPHABET_COUNT; i++) {
+        for (byte i = 0; i < ALPHABET_COUNT; i++) {
             res[i] = loadImage("alphabet/"+i+".png");
         }
 
         // Load level data
-        LoadLevel("level2.txt", "words3-8.txt");
+        LoadLevel("level1.txt", "words3-8.txt");
         
         // Fill game field (which figure will bound to which cube's face)
-        for (int x = 0; x < 8; x++) {
-            for (int y = 0; y < 6; y++) {
+        for (byte x = 0; x < 8; x++) {
+            for (byte y = 0; y < 6; y++) {
                 int cubeID = cs.pm[x][y][0];
                 int faceID = cs.pm[x][y][1];
                 if((cubeID != -1) && (faceID != -1)) {
@@ -754,12 +769,20 @@ class CGameScrabble {
 
     // Change letters of founded word to new random one
     private void ChangeLetters () {
-        for (int i = 0; i < _wordsIndex; i++) {
+        /*for (int i = 0; i < _wordsIndex; i++) {
             for (int j = 0; j < _fw[i].letters.length; j++) {
-                _gf[_fw[i].cube_ID[j]] [_fw[i].face_ID[j]] = int(random(0,27));
+                _gf[_fw[i].cube_ID[j]] [_fw[i].face_ID[j]] = int(random(0,26));
+            }
+        }*/
+        for (int i = 0; i < CUBES; i++) {
+            for (int j = 0; j < FPC; j++) {
+                if (faces2Change[i][j] == 1) {
+                    _gf[i][j] = int(random(0,26));
+                    faces2Change[i][j] = -1;
+                }
             }
         }
-        printFacesContent();
+        //printFacesContent();
     }
 
     private int[] GetWordIndexes(int begin, int length) {
@@ -773,20 +796,82 @@ class CGameScrabble {
         return indexes;
     }
 
+    void GiveScore(char[] word) {
+        for (byte i = 0; i < word.length; i++) {
+            switch (word[i]) {
+                case 'a':
+                case 'e':
+                case 'i':
+                case 'o':
+                case 'u':
+                case 'l':
+                case 'n':
+                case 's':
+                case 't':
+                case 'r':
+                    score += 1;
+                break;
+
+                case 'd':
+                case 'g':
+                    score += 2;
+                break;
+
+                case 'b':
+                case 'c':
+                case 'm':
+                case 'p':
+                    score += 3;
+                break;
+
+                case 'f':
+                case 'h':
+                case 'v':
+                case 'w':
+                case 'y':
+                    score += 4;
+                break;
+
+                case 'k':
+                    score += 5;
+                break;
+
+                case 'j':
+                case 'x':
+                    score += 8;
+                break;
+
+                case 'q':
+                case 'z':
+                    score += 10;
+                break;
+            }
+        }
+    }
+
     private void RememberWord (int inx [], int coords[][]) {
-        FoundedWords word = new FoundedWords();
+        /*FoundedWords word = new FoundedWords();
         word.cube_ID = new int  [inx.length];
         word.face_ID = new int  [inx.length];
-        word.letters = new char [inx.length];
+        word.letters = new char [inx.length];*/
+
+        char[] word =  new char [inx.length];
 
         for (int i = 0; i < inx.length; i++) {
-            word.cube_ID[i] = coords[inx[i]][0];
-            word.face_ID[i] = coords[inx[i]][1];
-            word.letters[i] = char(_gf[word.cube_ID[i]] [word.face_ID[i]] + 97);
-        }
+            //word.cube_ID[i] = coords[inx[i]][0];
+            //word.face_ID[i] = coords[inx[i]][1];
+            //word.letters[i] = char(_gf[word.cube_ID[i]] [word.face_ID[i]] + 97);
 
-        _fw[_wordsIndex++] = word;
-        println(word.letters);
+            int cube = coords[inx[i]][0];
+            int face = coords[inx[i]][1];
+            faces2Change[cube][face] = 1;
+            //word.letters[i] = char(_gf[cube] [face] + 97);
+            word[i] = char(_gf[cube] [face] + 97);
+        }
+        
+        GiveScore (word);
+        //_fw[_wordsIndex++] = word;
+        println(word);
     }
 
     private String GetWord (int coords[][]) {
@@ -836,12 +921,15 @@ class CGameScrabble {
     void onCsAttach() // cubeset attached (rotate anim ends)
     {
       println("onCsAttach");
+      rotation = true;
       //cs.printPositionMatrix();
       printFacesContent();
       steam_frame = 0; // play 0-5, then play 3-5 in a cycle
     }
 
-    void onCsAttach(char axis) {
+    void onCsAttach(char axis, animType anim) {
+        rotation = true;
+        rotationAxis = anim;
         println("onCsAttach " + axis);
         //cs.printPositionMatrix();
         printFacesContent();
@@ -855,32 +943,72 @@ class CGameScrabble {
       
       solved_angle++;
       if(solved_angle>=360) solved_angle=0; // for "SOLVED" when win
+
+      if (letterRotationAngle >= 271) {
+          letterRotationAngle = 0;
+          rotation = false;
+      }
     }
     
-    void draw()
-    {
-      for(int x=0; x<8; x++)
-      {
-        for(int y=0; y<6; y++)
-        {
-          int cubeID = cs.pm[x][y][0];
-          int faceID = cs.pm[x][y][1];
-          
-          if(cubeID != -1)
-          {
+    void RotateLetter (int cubeID, int faceID, int x, int y) {
+        if (cs.pam[x][y] >= letterRotationAngle) {
             int resID = _gf[cubeID][faceID];
             PGraphics g = cs.c[cubeID].f[faceID].d.g;
-            g.beginDraw();
-            g.pushMatrix();
-            g.imageMode(CENTER);
-            g.translate(SSP/2,SSP/2);
-            g.rotate(radians(cs.pam[x][y]));
-            g.image(res[resID],0,0);
-            g.popMatrix();
-            g.endDraw();
-          }
+            g.beginDraw ();
+            g.pushMatrix ();
+            g.imageMode (CENTER);
+            g.translate (SSP/2,SSP/2);
+            g.rotate (radians(letterRotationAngle));
+            g.image (res[resID], 0, 0);
+            g.popMatrix ();
+            g.endDraw ();
+        }    
+    }
+
+    void ResizeImage (int cubeID, int faceID, int x, int y) {
+        int resID = _gf[cubeID][faceID];
+        PGraphics g = cs.c[cubeID].f[faceID].d.g;
+        //g.image (res[resID], 0, 0);
+        g.beginDraw ();
+        //g.pushMatrix ();
+        //g.imageMode (CENTER);
+        //             x     y
+        g.translate (SSP/2,SSP/2);
+        //g.resize(SSP/10,SSP/10);
+        
+        //g.image (res[resID], 0, 0);        
+        //g.popMatrix ();
+        g.endDraw ();
+        //image(g,0,0,50,50);
+    }
+
+    void draw() {
+        if (rotation) {
+            for(int x=0; x<8; x++) {
+                for(int y=0; y<6; y++) {
+                    int cubeID = cs.pm[x][y][0];
+                    int faceID = cs.pm[x][y][1];
+                    if(cubeID != -1) {
+                        RotateLetter(cubeID, faceID, x, y);
+                    }
+                }
+            }
+            letterRotationAngle += 10;
         }
-      }
+         /*
+        if (resizeImage && !rotation) {
+            for (int x = 0; x < 8; x++) {
+                for (int y = 0; y < 6; y++) {
+                    int cubeID = cs.pm[x][y][0];
+                    int faceID = cs.pm[x][y][1];
+                    if((cubeID != -1) && (faceID != -1) && (faces2Change[cubeID][faceID] == 1)) {
+                        println("RESIZE");
+                        ResizeImage(cubeID, faceID, x, y);
+                    }
+                }
+            }
+            resizeImage = false;
+        }*/
       /*
       for(int x=0; x<8; x++)
       {
@@ -1192,7 +1320,6 @@ class CGameScrabble {
     void Check_Z_Axis() {
         String axisLetters[] = new String[8];
         int coordinates [][] = new int [8][2];
-        // I know that it's look horrible but i dont know how to make it in cycle
         for (int i = 0; i< 2; i++) {
         // First iteration it's inner ring (letters around debug red dot, !NOT! face with red dot!)
         // and second is outer ring
@@ -1229,10 +1356,11 @@ class CGameScrabble {
     }
 
     void CheckRotationAxis(char axis) {
+        /*
         _fw = null;
         _wordsIndex = 0;
-
         _fw = new FoundedWords[8];
+        */
 
         switch(axis) {
             case 'x': 
@@ -1249,6 +1377,7 @@ class CGameScrabble {
             break;
         }
 
+        resizeImage = true;
         ChangeLetters();
     }
 
@@ -1474,7 +1603,11 @@ void setup()
   cs.printPositionMatrix();
   dp = new CDebugPanel();
 
+  //makeWordSound = new SoundFile(this, "findWord.wav");
+  //makeWordSound.play();  
+
   //game_logic = new CGameScrabble();
+  //game_logic.onCsAttach();
   //game_logic.printFacesContent();
 
   logic = new CPawnLogic();

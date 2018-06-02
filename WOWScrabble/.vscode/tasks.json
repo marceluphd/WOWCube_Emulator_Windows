@@ -13,9 +13,27 @@
             "problemMatcher": []
         },
         {
+            "label": "WOWCube Compile Pawn Logic",
+            "type": "shell",
+            "command": "..\\..\\Pawn\\bin\\pawncc pipes.pwn",
+            "options": {
+                "cwd": "./pawn"
+            },
+            "problemMatcher": []
+        },
+        {
             "label": "WOWCube Run GUI",
             "type": "shell",
             "command": "..\\Processing\\processing-java.exe --sketch=..\\WOWScrabble --run",
+            "problemMatcher": []
+        },
+        {
+            "label": "WOWCube Run Pawn Logic Cube #1",
+            "type": "shell",
+            "command": "..\\..\\Pawn\\bin\\pawnrun pipes.amx 1",
+            "options": {
+                "cwd": "./pawn"
+            },
             "problemMatcher": []
         },
         {
