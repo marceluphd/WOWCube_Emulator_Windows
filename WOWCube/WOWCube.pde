@@ -4,7 +4,7 @@ UDP udp;
 final int FSP = 260; // FACE_SIZE_PIXELS
 final int SSP = 240; // SCREEN_SIZE_PIXELS
 final int CUBES = 8;
-final int FPC = 3  ; // FACES_PER_CUBEnt FPC = 3  ; // FACES_PER_CUBE
+final int FPC = 3  ; // FACES_PER_CUBE
 
 float camRotX = 0; // in degrees!
 float camRotY = 0;
@@ -44,6 +44,7 @@ final byte CMD_DETACH      = CMD_PAWN_BASE + 3;
 final byte CMD_ATTACH      = CMD_PAWN_BASE + 4; // CMD_ATTACH, TODO:positions matrix here
 final byte TICK_DELAY      = 100; //Tick Deley in milliseconds
 
+// LCD display object at cube's face
 class CDisplay
 {
   CFace pface; // backlink to parent Face
@@ -123,6 +124,7 @@ class CDisplay
   }
 }
 
+// Cube's (1/8 of WOWCube) one face with LCD display on it.
 class CFace
 {
   public CCube pcube; // backlink to parent Cube
@@ -195,6 +197,7 @@ class CFace
   }
 }
 
+// Cube object is 1/8 of WOWCube. It has 3 faces with LCD displays.
 class CCube
 {
   public int cubeN;
@@ -262,6 +265,7 @@ class CCube
   }
 }
 
+// WOWCube object - 8 cubes, each has 3 faces with LCD displays.
 class CCubeSet
 {
   public CCube[] c;
@@ -588,6 +592,7 @@ class CCubeSet
   }
 }
 
+// "Cross" projection of the cube at top-left
 class CDebugPanel
 {
   final float scale = 0.25; // scale of model
@@ -633,434 +638,6 @@ class CDebugPanel
         }
       }
     }
-  }
-}
-
-class CGamePipesLogic
-{
-  private boolean _drawGameFieldNumbers = false;
-  
-  private PFont fontForWinText = createFont("Courier New Bold", 60);
-  
-  final int PIPES_BASE=0;
-  final int STEAM_BASE=16;
-  final int PIPES_COUNT=16;
-  final int STEAM_COUNT=36;
-
-  private int steam_frame=0; // see tick()
-  private int solved_angle=0; // see tick()
-  
-  PImage res[] = new PImage[PIPES_COUNT+STEAM_COUNT]; // resources
-  
-  private String levelData[][] = new String[6][8];
-  private int gf[/*cubeID*/][/*faceID*/] = new int[CUBES][FPC]; // Game Field
-  
-  CGamePipesLogic()
-  {
-    // Load resources
-    for(int i=PIPES_BASE; i<PIPES_COUNT; i++) res[i] = loadImage("pipes/"+binary(i,4)+".png");
-    for(int i=STEAM_BASE; i<(STEAM_BASE+STEAM_COUNT); i++) res[i] = loadImage("steam/"+(i-STEAM_BASE+1)+".png");
-    
-    // Load level data
-    loadLevel("level.txt");
-    
-    // Fill game field (which figure will bound to which cube's face)
-    for(int x=0; x<8; x++)
-    {
-      for(int y=0; y<6; y++)
-      {
-        int cubeID = cs.pm[x][y][0];
-        int faceID = cs.pm[x][y][1];
-        if((cubeID != -1) && (faceID != -1))
-        {
-          gf[cubeID][faceID] = rotateFigureBitwise(unbinary(levelData[5-y][x]), cs.pam[x][y]);
-        }
-      }
-    }
-  }
-  
-  void loadLevel(String filename)
-  {
-    String row[] = loadStrings(filename);
-    for(int x=0; x<row.length; x++)
-    {
-      String col[] = row[x].split(",");
-      for(int y=0; y<col.length; y++)
-      {
-        levelData[x][y]=col[y]; 
-      }
-    }
-  }
-  
-  void onCsDetach() // cubeset detached (rotate anim started) 
-  {
-    steam_frame = 5; // play 5-8, then nothing until attached
-  }
-  
-  void onCsAttach() // cubeset attached (rotate anim ends)
-  {
-    steam_frame = 0; // play 0-5, then play 3-5 in a cycle
-  }
-  
-  void tick() // on timer
-  {
-    steam_frame++;
-    if(steam_frame==5) steam_frame=3; // cycle if attached
-    
-    solved_angle++;
-    if(solved_angle>=360) solved_angle=0; // for "SOLVED" when win
-  }
-  
-  void draw()
-  {
-    for(int x=0; x<8; x++)
-    {
-      for(int y=0; y<6; y++)
-      {
-        int cubeID = cs.pm[x][y][0];
-        int faceID = cs.pm[x][y][1];
-        
-        if(cubeID != -1)
-        {
-          int resID = gf[cubeID][faceID];
-          PGraphics g = cs.c[cubeID].f[faceID].d.g;
-          g.beginDraw();
-            g.image(res[resID],0,0);
-          g.endDraw();
-        }
-      }
-    }
-    
-    for(int x=0; x<8; x++)
-    {
-      for(int y=0; y<6; y++)
-      {
-        drawConnectorsLogic(x,y);
-      }
-    }
-
-    boolean steamDrawn = false;
-
-    for(int x=0; x<8; x++)
-    {
-      for(int y=0; y<6; y++)
-      {
-        if(steamDrawn == false)
-        {
-          steamDrawn = drawSteamLogic(x,y); // check if at least 1 steam drawn
-        }
-        else
-        {
-          drawSteamLogic(x,y); // at least 1 steam is drawn previously - level not solved yet...
-        }
-      }
-    }
-    
-    if(steamDrawn == false)
-    {
-      // !!! WIN !!!
-      for(int x=0; x<8; x++)
-      {
-        for(int y=0; y<6; y++)
-        {
-          int cubeID = cs.pm[x][y][0];
-          int faceID = cs.pm[x][y][1];
-          
-          if(cubeID != -1)
-          {
-            PGraphics g = cs.c[cubeID].f[faceID].d.g;
-            g.beginDraw();
-              g.pushMatrix();
-                g.rectMode(CENTER);
-                g.translate(SSP/2,SSP/2);
-                g.rotate(radians(solved_angle));
-                g.textFont(fontForWinText);
-                g.textAlign(CENTER, CENTER);
-                g.fill(255,255,255,50);
-                g.text("SOLVED",0,0);
-                g.rectMode(CORNER);
-              g.popMatrix();
-            g.endDraw();
-          }
-        }
-      }
-    }
-    
-    if(_drawGameFieldNumbers)
-    {
-      for(int x=0; x<8; x++)
-      {
-        for(int y=0; y<6; y++)
-        {
-          int cubeID = cs.pm[x][y][0];
-          int faceID = cs.pm[x][y][1];
-          
-          if(cubeID != -1)
-          {
-            int figure = rotateFigureBitwise(gf[cubeID][faceID], -cs.pam[x][y]);
-            
-            int meTop = ((figure >> 3) & 0x1);
-            int meRight = ((figure >> 2) & 0x1);
-            int meBottom = ((figure >> 1) & 0x1);
-            int meLeft = ((figure >> 0) & 0x1);
-            
-            PGraphics g = cs.c[cubeID].f[faceID].d.g;
-            // draw array indexes
-            g.beginDraw();
-              g.text("["+meTop+","+meRight+","+meBottom+","+meLeft+"]",100,100);
-            g.endDraw();
-          }
-        }
-      }
-    }
-    
-    // DEBUG - draw red dot
-    PGraphics g = cs.c[cs.pm[2][2][0]].f[cs.pm[2][2][1]].d.g;
-    g.beginDraw();
-      g.fill(255,0,0);
-      g.ellipse(0,0,50,50);
-    g.endDraw();
-    g = cs.c[cs.pm[2][3][0]].f[cs.pm[2][3][1]].d.g;
-    g.beginDraw();
-      g.fill(255,0,0);
-      g.ellipse(0,0,50,50);
-    g.endDraw();
-    g = cs.c[cs.pm[3][3][0]].f[cs.pm[3][3][1]].d.g;
-    g.beginDraw();
-      g.fill(255,0,0);
-      g.ellipse(0,0,50,50);
-    g.endDraw();
-    g = cs.c[cs.pm[3][2][0]].f[cs.pm[3][2][1]].d.g;
-    g.beginDraw();
-      g.fill(255,0,0);
-      g.ellipse(0,0,50,50);
-    g.endDraw();
-    // END DEBUG
-  }
-  
-  void drawConnectorsLogic(int x, int y)
-  {
-    // check boundaries conditions
-    if(isFace(x, y))
-    {
-      if((x==0 || !isFace(x-1,y)) && isLeft(x,y)) drawConnector(x,y,unbinary("0001"));
-      if((y==0 || !isFace(x,y-1)) && isBottom(x,y)) drawConnector(x,y,unbinary("0010"));
-    }
-    
-    if(isFace(x, y) && isFace(x+1, y)) // planar lookup right
-    {
-      if(isRight(x,y) && isLeft(x+1,y))
-      {
-        drawConnector(x,y,unbinary("0100"));
-        drawConnector(x+1,y,unbinary("0001"));
-      }
-    }
-    else if(isFace(x, y))
-    {
-      if(isRight(x,y)) drawConnector(x,y,unbinary("0100"));
-    }
-    
-    if(isFace(x, y) && isFace(x, y+1)) // planar lookup top
-    {
-      if(isTop(x,y) && isBottom(x,y+1))
-      {
-        drawConnector(x,y,unbinary("1000"));
-        drawConnector(x,y+1,unbinary("0010"));
-      }
-    }
-    else if(isFace(x, y))
-    {
-      if(isTop(x,y)) drawConnector(x,y,unbinary("1000")); 
-    }
-  }
-  
-  void drawConnector(int x, int y, int _resID)
-  {
-    int resID = rotateFigureBitwise(_resID, cs.pam[x][y]);
-    int cubeID = cs.pm[x][y][0];
-    int faceID = cs.pm[x][y][1];
-    PGraphics g = cs.c[cubeID].f[faceID].d.g;
-    
-    g.beginDraw();
-      switch(resID)
-      {
-        case 8: g.image(res[resID], SSP/2-res[resID].width/2, 0); break; // top 1000
-        case 4: g.image(res[resID], SSP-res[resID].width, SSP/2-res[resID].height/2); break; // right 0100
-        case 2: g.image(res[resID], SSP/2-res[resID].width/2, SSP-res[resID].height); break; // bottom 0010
-        case 1: g.image(res[resID], 0, SSP/2-res[resID].height/2); break; // left 0001
-      }
-    g.endDraw();
-  }
-  
-  boolean drawSteamLogic(int x, int y)
-  {
-    boolean steamDrawn = false;
-    
-    if(isFace(x,y) && isFace(x,y+1)) // planar lookup top
-    {
-      if(isTop(x,y) && !isBottom(x,y+1))
-      {
-        drawSteam(x,y+1,unbinary("0010"));
-        steamDrawn = true;
-      }
-    }
-    
-    if(isFace(x,y) && isFace(x+1,y)) // planar lookup right
-    {
-      if(isRight(x,y) && !isLeft(x+1,y))
-      {
-        drawSteam(x+1,y,unbinary("0001"));
-        steamDrawn = true;
-      }
-    }
-    
-    if(isFace(x,y) && isFace(x,y-1)) // planar lookup bottom
-    {
-      if(isBottom(x,y) && !isTop(x,y-1))
-      {
-        drawSteam(x,y-1,unbinary("1000"));
-        steamDrawn = true;
-      }
-    }
-    
-    if(isFace(x,y) && isFace(x-1,y)) // planar lookup left
-    {
-      if(isLeft(x,y) && !isRight(x-1,y))
-      {
-        drawSteam(x-1,y,unbinary("0100"));
-        steamDrawn = true;
-      }
-    }
-    
-    return steamDrawn;
-  }
-  
-  void drawSteam(int x, int y, int _pos)
-  {
-    if(steam_frame < 0 || steam_frame > 8) return;
-    int resID = STEAM_BASE+steam_frame;
-    int pos = rotateFigureBitwise(_pos, cs.pam[x][y]);
-    int cubeID = cs.pm[x][y][0];
-    int faceID = cs.pm[x][y][1];
-    PGraphics g = cs.c[cubeID].f[faceID].d.g;
-   
-    g.beginDraw();
-      switch(pos)
-      {
-        case 8:
-          g.pushMatrix();
-            g.imageMode(CENTER);
-              g.translate(SSP/2, SSP/2-res[resID].height/2);
-              g.rotate(PI);
-              g.blendMode(LIGHTEST);
-                g.image(res[resID],0,0);
-              g.blendMode(BLEND);
-            g.imageMode(CORNER);
-          g.popMatrix();
-        break; // top 1000
-        
-        case 4:
-          g.pushMatrix();
-            g.imageMode(CENTER);
-              g.translate(SSP/2-res[resID].width/2, SSP/2);
-              g.rotate(-PI/2);
-              g.blendMode(LIGHTEST);
-                g.image(res[resID],0,0);
-              g.blendMode(BLEND);
-            g.imageMode(CORNER);
-          g.popMatrix();
-        break; // right 0100
-        
-        case 2:
-          g.pushMatrix();
-            g.imageMode(CENTER);
-              g.translate(SSP/2, SSP/2-res[resID].height/2);
-              //g.rotate(0);
-              g.blendMode(LIGHTEST);
-                g.image(res[resID],0,0);
-              g.blendMode(BLEND);
-            g.imageMode(CORNER);
-          g.popMatrix();
-        break; // bottom 0010
-        
-        case 1:
-          g.pushMatrix();
-            g.imageMode(CENTER);
-              g.translate(SSP/2-res[resID].width/2, SSP/2);
-              g.rotate(PI/2);
-              g.blendMode(LIGHTEST);
-                g.image(res[resID],0,0);
-              g.blendMode(BLEND);
-            g.imageMode(CORNER);
-          g.popMatrix();
-        break; // left 0001
-      }
-    g.endDraw();
-  }
-  
-  // used for face rotation compensation
-  int rotateFigureBitwise(int figure, int angle)
-  {
-    int r = figure;
-    
-    switch(angle)
-    {
-      case  -90: r = ((figure >> 1) & 0x7) | ((figure << 3) & 0x8); break; // 90
-      case -180: r = ((figure >> 2) & 0x3) | ((figure << 2) & 0xC); break; // 180
-      case -270: r = ((figure >> 3) & 0x1) | ((figure << 1) & 0xE); break; // 270
-      case   90: r = ((figure << 1) & 0xE) | ((figure >> 3) & 0x1); break; // -90
-      case  180: r = ((figure << 2) & 0xC) | ((figure >> 2) & 0x3); break; // -180
-      case  270: r = ((figure << 3) & 0x8) | ((figure >> 1) & 0x7); break; // -270
-    }
-    
-    return r;
-  }
-  
-  boolean isFace(int x, int y)
-  {
-    try
-    {
-      int cubeID = cs.pm[x][y][0];
-      int faceID = cs.pm[x][y][1];
-      if((cubeID == -1) || (faceID == -1)) return false;
-      return true;
-    }
-    catch(Exception e)
-    {
-      return false;
-    }
-  }
-  
-  boolean isTop(int x, int y)
-  {
-    int cubeID = cs.pm[x][y][0];
-    int faceID = cs.pm[x][y][1];
-    int figure = rotateFigureBitwise(gf[cubeID][faceID], -cs.pam[x][y]);
-    return boolean((figure >> 3) & 0x1);
-  }
-  
-  boolean isRight(int x, int y)
-  {
-    int cubeID = cs.pm[x][y][0];
-    int faceID = cs.pm[x][y][1];
-    int figure = rotateFigureBitwise(gf[cubeID][faceID], -cs.pam[x][y]);
-    return boolean((figure >> 2) & 0x1);
-  }
-
-  boolean isBottom(int x, int y)
-  {
-    int cubeID = cs.pm[x][y][0];
-    int faceID = cs.pm[x][y][1];
-    int figure = rotateFigureBitwise(gf[cubeID][faceID], -cs.pam[x][y]);
-    return boolean((figure >> 1) & 0x1);
-  }
-
-  boolean isLeft(int x, int y)
-  {
-    int cubeID = cs.pm[x][y][0];
-    int faceID = cs.pm[x][y][1];
-    int figure = rotateFigureBitwise(gf[cubeID][faceID], -cs.pam[x][y]);
-    return boolean((figure >> 0) & 0x1);
   }
 }
 
