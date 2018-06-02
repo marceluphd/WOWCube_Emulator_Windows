@@ -24,6 +24,9 @@
 
 #define CUBES_MAX 8
 #define FACES_PER_CUBE 3
+#define RIBS_PER_CUBE 4
+
+
 
 // Initial "Positions Matrix" 8x6-24 "projection", each node in 2D matrix is {cubeID,faceID}
 new const abi_initial_pm[][][] = [
@@ -72,6 +75,7 @@ abi_LogSndPkt(const pkt[], size, const cubeN)
 abi_LogPositionsMatrix()
 {
   printf("PM state:\n");
+  
   for(new y=(PROJECTION_MAX_Y-1); y>=0; y--)
   {
     for(new x=0; x<PROJECTION_MAX_X; x++)
@@ -133,7 +137,7 @@ abi_CMD_FILL(const faceN, const R, const G, const B)
   new pkt[2] = 0;
   pkt[0] = (R << 16) | (faceN << 8) | CMD_FILL;
   pkt[1] = (B << 16) | (G & 0x0000FFFF);
-  abi_LogSndPkt(pkt, 2*4, abi_cubeN);
+  //abi_LogSndPkt(pkt, 2*4, abi_cubeN);
   sendpacket(pkt, 2, GUI_ADDR);
 }
 
@@ -142,7 +146,7 @@ abi_CMD_BITMAP(const faceN, const resID, const x, const y)
   new pkt[2] = 0;
   pkt[0] = (resID << 16) | (faceN << 8) | CMD_BITMAP;
   pkt[1] = (y << 16) | (x & 0x0000FFFF);
-  abi_LogSndPkt(pkt, 2*4, abi_cubeN);
+  //abi_LogSndPkt(pkt, 2*4, abi_cubeN);
   sendpacket(pkt, 2, GUI_ADDR);
 }
 
