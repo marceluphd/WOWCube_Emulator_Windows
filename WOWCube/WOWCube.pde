@@ -723,6 +723,30 @@ class CPawnLogic // interface to/from Pawn
         e.printStackTrace();
       }
     }
+
+    // DEBUG - draw red dot
+    PGraphics g;
+    g = cs.c[cs.pm[2][2][0]].f[cs.pm[2][2][1]].d.g;
+    g.beginDraw();
+      g.fill(255,0,0);
+      g.ellipse(0,0,50,50);
+    g.endDraw();
+    g = cs.c[cs.pm[2][3][0]].f[cs.pm[2][3][1]].d.g;
+    g.beginDraw();
+      g.fill(255,0,0);
+      g.ellipse(0,0,50,50);
+    g.endDraw();
+    g = cs.c[cs.pm[3][3][0]].f[cs.pm[3][3][1]].d.g;
+    g.beginDraw();
+      g.fill(255,0,0);
+      g.ellipse(0,0,50,50);
+    g.endDraw();
+    g = cs.c[cs.pm[3][2][0]].f[cs.pm[3][2][1]].d.g;
+    g.beginDraw();
+      g.fill(255,0,0);
+      g.ellipse(0,0,50,50);
+    g.endDraw();
+    // END DEBUG
   }
   
   void tick() // on timer
@@ -793,7 +817,7 @@ void draw()
   }
 
   logic.draw();
-  cs.drawOverlays(false, false, false, false);
+  cs.drawOverlays(true, true, false, false);
  
   pushMatrix();
     translate(2.2*FSP, 2.2*FSP, -3.0*FSP);
