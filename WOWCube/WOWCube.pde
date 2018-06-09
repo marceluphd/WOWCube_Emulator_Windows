@@ -664,10 +664,10 @@ class CPawnLogic // interface to/from Pawn
   final private int LETTERS_COUNT=26;
   
  
-  private PImage res[] = new PImage[PIPES_COUNT+STEAM_COUNT+LETTERS_COUNT+1]; // resources
-  //private PImage res[];
+  //private PImage res[] = new PImage[PIPES_COUNT+STEAM_COUNT+LETTERS_COUNT+1]; // resources
+  private PImage res[];
   private ArrayList<CPawnCmd> pawn_cmd_queue = new ArrayList<CPawnCmd>(); 
-  
+
   CPawnLogic()
   {
     //res[] = new PImage[PIPES_COUNT+STEAM_COUNT];
@@ -675,10 +675,23 @@ class CPawnLogic // interface to/from Pawn
     //File[] files = f.listFiles();
     //println(files);
     // Load resources
-    for(int i=PIPES_BASE;   i<PIPES_COUNT; i++) res[i] = loadImage("Resources/"+binary(i,4)+".png");
+    /*for(int i=PIPES_BASE;   i<PIPES_COUNT; i++) res[i] = loadImage("Resources/"+binary(i,4)+".png");
     for(int i=STEAM_BASE;   i<(STEAM_BASE+STEAM_COUNT); i++) res[i] = loadImage("Resources/"+(i-STEAM_BASE+1)+".png");
     for(int i=LETTERS_BASE; i<(LETTERS_BASE+LETTERS_COUNT); i++) res[i] = loadImage("Resources/"+(i-STEAM_BASE)+".png");
-    res[78] = loadImage("Resources/Ball.png");
+    res[78] = loadImage("Resources/Ball.png");*/
+      //Load all files for "Resources"
+      int count_files = 0;
+      ArrayList <String> files = new ArrayList<String>();
+      File f = new File("..//WoWCube//Resources");
+      for (File item : f.listFiles())
+        if (!item.isDirectory())
+          files.add(item.getName());
+
+      count_files = files.size();
+      res = new PImage[count_files];
+
+      for(int i=0;i<count_files;i++)
+        res[i] = loadImage("Resources/"+files.get(i));
   }
   
   void draw()
