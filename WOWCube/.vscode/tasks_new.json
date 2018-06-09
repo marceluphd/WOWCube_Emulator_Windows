@@ -1,0 +1,108 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "1) WOWCube compile Scrabble game logic (Pawn language)",
+            "type": "shell",
+            "command": "../../Pawn/bin/pawncc Scrabble.pwn -ogame",
+            "options": {
+                "cwd": "./pawn"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "2) WOWCube run #0-7 Cube game logic (Pawn language)",
+            "dependsOn": [
+                "WOWCube run #0",
+                "WOWCube run #1",
+                "WOWCube run #2",
+                "WOWCube run #3",
+                "WOWCube run #4",
+                "WOWCube run #5",
+                "WOWCube run #6",
+                "WOWCube run #7",
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "3) WOWCube run GUI emulator (Processing language)",
+            "type": "shell",
+            "command": "../Processing/processing-java.exe --sketch=../WOWCube --run",
+            "problemMatcher": []
+        },
+        {
+            "label": "WOWCube run #0",
+            "type": "shell",
+            "command": "../../Pawn/bin/pawnrun game.amx 0",
+            "options": {
+                "cwd": "./pawn"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "WOWCube run #1",
+            "type": "shell",
+            "command": "../../Pawn/bin/pawnrun game.amx 1",
+            "options": {
+                "cwd": "./pawn"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "WOWCube run #2",
+            "type": "shell",
+            "command": "../../Pawn/bin/pawnrun game.amx 2",
+            "options": {
+                "cwd": "./pawn"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "WOWCube run #3",
+            "type": "shell",
+            "command": "../../Pawn/bin/pawnrun game.amx 3",
+            "options": {
+                "cwd": "./pawn"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "WOWCube run #4",
+            "type": "shell",
+            "command": "../../Pawn/bin/pawnrun game.amx 4",
+            "options": {
+                "cwd": "./pawn"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "WOWCube run #5",
+            "type": "shell",
+            "command": "../../Pawn/bin/pawnrun game.amx 5",
+            "options": {
+                "cwd": "./pawn"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "WOWCube run #6",
+            "type": "shell",
+            "command": "../../Pawn/bin/pawnrun game.amx 6",
+            "options": {
+                "cwd": "./pawn"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "WOWCube run #7",
+            "type": "shell",
+            "command": "../../Pawn/bin/pawnrun game.amx 7",
+            "options": {
+                "cwd": "./pawn"
+            },
+            "problemMatcher": []
+        },
+    ]
+}
