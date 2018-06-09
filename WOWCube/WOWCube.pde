@@ -1084,19 +1084,26 @@ class CPawnLogic // interface to/from Pawn
   final private int PIPES_COUNT=16;
   final private int STEAM_COUNT=36;
  
-  private PImage res[] = new PImage[PIPES_COUNT+STEAM_COUNT]; // resources
-  //private PImage res[];
+  //private PImage res[] = new PImage[PIPES_COUNT+STEAM_COUNT]; // resources
+  private PImage res[];
   private ArrayList<CPawnCmd> pawn_cmd_queue = new ArrayList<CPawnCmd>(); 
   
   CPawnLogic()
   {
-    //res[] = new PImage[PIPES_COUNT+STEAM_COUNT];
-    //File f = new File("Resources");
-    //File[] files = f.listFiles();
-    //println(files);
+    //Load all files for "Resources"
+    int count_files =0;
+    ArrayList <String> files = new ArrayList<String>();
+    File f = new File("..//WoWCube//Resources");
+    for (File item : f.listFiles())
+      if (!item.isDirectory())
+        files.add(item.getName());
+    count_files = files.size();
+    res = new PImage[count_files];
+    for(int i=0;i<count_files;i++)
+      res[i] = loadImage("Resources/"+files.get(i));
     // Load resources
-    for(int i=PIPES_BASE; i<PIPES_COUNT; i++) res[i] = loadImage("pipes/"+binary(i,4)+".png");
-    for(int i=STEAM_BASE; i<(STEAM_BASE+STEAM_COUNT); i++) res[i] = loadImage("steam/"+(i-STEAM_BASE+1)+".png");
+    //for(int i=PIPES_BASE; i<PIPES_COUNT; i++) res[i] = loadImage("pipes/"+binary(i,4)+".png");
+    //for(int i=STEAM_BASE; i<(STEAM_BASE+STEAM_COUNT); i++) res[i] = loadImage("steam/"+(i-STEAM_BASE+1)+".png");
   }
   
   void draw()
