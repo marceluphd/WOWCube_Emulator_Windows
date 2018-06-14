@@ -6,13 +6,14 @@ final int SSP = 240; // SCREEN_SIZE_PIXELS
 final int CUBES = 8;
 final int FPC = 3  ; // FACES_PER_CUBE
 
-float camRotX = 0; // in degrees!
-float camRotY = 0;
+float camRotX = -35; // in degrees!
+float camRotY = -45;
 
 int timer = 0;
 
 CCubeSet cs;
 CDebugPanel dp;
+CRotatePanel rp;
 CPawnLogic logic;
 
 enum animType
@@ -383,23 +384,23 @@ class CCubeSet
         c[p[7]].rotateX(-animSpeed);
         if(animAngle % 90 == 0) anim_X_CCW_end();
       break;
-      
+
       case ANIM_Y_CW:
-        animAngle += animSpeed;
-        c[p[0]].rotateY(animSpeed);
-        c[p[1]].rotateY(animSpeed);
-        c[p[4]].rotateY(animSpeed);
-        c[p[5]].rotateY(animSpeed);
-        if(animAngle % 90 == 0) anim_Y_CW_end();
-      break;
-      
-      case ANIM_Y_CCW:
         animAngle -= animSpeed;
         c[p[0]].rotateY(-animSpeed);
         c[p[1]].rotateY(-animSpeed);
         c[p[4]].rotateY(-animSpeed);
         c[p[5]].rotateY(-animSpeed);
         if(animAngle % 90 == 0) anim_Y_CCW_end();
+      break;
+
+      case ANIM_Y_CCW:
+        animAngle += animSpeed;
+        c[p[0]].rotateY(animSpeed);
+        c[p[1]].rotateY(animSpeed);
+        c[p[4]].rotateY(animSpeed);
+        c[p[5]].rotateY(animSpeed);
+        if(animAngle % 90 == 0) anim_Y_CW_end();
       break;
       
       case ANIM_Z_CW:
@@ -641,6 +642,125 @@ class CDebugPanel
   }
 }
 
+class CRotatePanel
+{
+  final float PANEL_SCALE = 0.5;
+  final int SHAPE_SIZE = 256;
+  final int X_OFS = 800-SHAPE_SIZE-10;
+  final int Y_OFS = 10;
+  private PShape s = new PShape();
+  private PGraphics g;
+  private PImage img_base = new PImage();
+  private PImage img_axis_x_ccw = new PImage();
+  private PImage img_axis_x_ccw_hover = new PImage();
+  private PImage img_axis_x_cw = new PImage();
+  private PImage img_axis_x_cw_hover = new PImage();
+  private PImage img_axis_y_ccw = new PImage();
+  private PImage img_axis_y_ccw_hover = new PImage();
+  private PImage img_axis_y_cw = new PImage();
+  private PImage img_axis_y_cw_hover = new PImage();
+  private PImage img_axis_z_ccw = new PImage();
+  private PImage img_axis_z_ccw_hover = new PImage();
+  private PImage img_axis_z_cw = new PImage();
+  private PImage img_axis_z_cw_hover = new PImage();
+
+  CRotatePanel()
+  {
+    img_base = loadImage("forGUI/axis_base.png");
+    img_axis_x_ccw = loadImage("forGUI/axis_x-ccw.png");
+    img_axis_x_ccw_hover = loadImage("forGUI/axis_x-ccw_hover.png");
+    img_axis_x_cw = loadImage("forGUI/axis_x-cw.png");
+    img_axis_x_cw_hover = loadImage("forGUI/axis_x-cw_hover.png");
+    img_axis_y_ccw = loadImage("forGUI/axis_y-ccw.png");
+    img_axis_y_ccw_hover = loadImage("forGUI/axis_y-ccw_hover.png");
+    img_axis_y_cw = loadImage("forGUI/axis_y-cw.png");
+    img_axis_y_cw_hover = loadImage("forGUI/axis_y-cw_hover.png");
+    img_axis_z_ccw = loadImage("forGUI/axis_z-ccw.png");
+    img_axis_z_ccw_hover = loadImage("forGUI/axis_z-ccw_hover.png");
+    img_axis_z_cw = loadImage("forGUI/axis_z-cw.png");
+    img_axis_z_cw_hover = loadImage("forGUI/axis_z-cw_hover.png");
+    g = createGraphics(SHAPE_SIZE,SHAPE_SIZE+10,P2D);
+    s = createShape();
+    s.beginShape(QUADS);
+    s.translate(X_OFS,Y_OFS);
+    s.noStroke();
+    s.vertex(0, 0, 0, 0, 0);
+    s.vertex(SHAPE_SIZE, 0, 0, 1, 0);
+    s.vertex(SHAPE_SIZE, SHAPE_SIZE, 0, 1, 1);
+    s.vertex(0, SHAPE_SIZE, 0, 0, 1);
+    s.endShape();
+  }
+
+  void draw()
+  {
+    g.beginDraw();
+      g.image(img_base,0,0,img_base.width*PANEL_SCALE,img_base.height*PANEL_SCALE);
+      // X CCW
+      if((mouseX > X_OFS+128) && (mouseX < X_OFS+128*2) && (mouseY > Y_OFS+132+66) && (mouseY < Y_OFS+132*2))
+      {
+        g.image(img_axis_x_ccw_hover,128,132+66,img_axis_x_ccw_hover.width*PANEL_SCALE,img_axis_x_ccw_hover.height*PANEL_SCALE);
+        if(mousePressed) cs.anim_X_CCW_begin();
+      }
+      else
+      {
+        g.image(img_axis_x_ccw,128,132+66,img_axis_x_ccw.width*PANEL_SCALE,img_axis_x_ccw.height*PANEL_SCALE);
+      }
+      // X CW
+      if((mouseX > X_OFS+128) && (mouseX < X_OFS+128*2) && (mouseY > Y_OFS+132) && (mouseY < Y_OFS+132+66))
+      {
+        g.image(img_axis_x_cw_hover,128,132,img_axis_x_cw_hover.width*PANEL_SCALE,img_axis_x_cw_hover.height*PANEL_SCALE);
+        if(mousePressed) cs.anim_X_CW_begin();
+      }
+      else
+      {
+        g.image(img_axis_x_cw,128,132,img_axis_x_cw.width*PANEL_SCALE,img_axis_x_cw.height*PANEL_SCALE);
+      }
+      // Y CCW
+      if((mouseX > X_OFS+128) && (mouseX < X_OFS+128*2) && (mouseY > Y_OFS) && (mouseY < Y_OFS+95))
+      {
+        g.image(img_axis_y_ccw_hover,128,0,img_axis_y_ccw_hover.width*PANEL_SCALE,img_axis_y_ccw_hover.height*PANEL_SCALE);
+        if(mousePressed) cs.anim_Y_CCW_begin();
+      }
+      else
+      {
+        g.image(img_axis_y_ccw,128,0,img_axis_y_ccw.width*PANEL_SCALE,img_axis_y_ccw.height*PANEL_SCALE);
+      }
+      // Y CW
+      if((mouseX > X_OFS) && (mouseX < X_OFS+128) && (mouseY > Y_OFS) && (mouseY < Y_OFS+95))
+      {
+        g.image(img_axis_y_cw_hover,0,0,img_axis_y_cw_hover.width*PANEL_SCALE,img_axis_y_cw_hover.height*PANEL_SCALE);
+        if(mousePressed) cs.anim_Y_CW_begin();
+      }
+      else
+      {
+        g.image(img_axis_y_cw,0,0,img_axis_y_cw.width*PANEL_SCALE,img_axis_y_cw.height*PANEL_SCALE);
+      }
+      // Z CCW
+      if((mouseX > X_OFS) && (mouseX < X_OFS+128) && (mouseY > Y_OFS+132) && (mouseY < Y_OFS+132+66))
+      {
+        g.image(img_axis_z_ccw_hover,0,132,img_axis_z_ccw_hover.width*PANEL_SCALE,img_axis_z_ccw_hover.height*PANEL_SCALE);
+        if(mousePressed) cs.anim_Z_CCW_begin();
+      }
+      else
+      {
+        g.image(img_axis_z_ccw,0,132,img_axis_z_ccw.width*PANEL_SCALE,img_axis_z_ccw.height*PANEL_SCALE);
+      }
+      // Z CW
+      if((mouseX > X_OFS) && (mouseX < X_OFS+128) && (mouseY > Y_OFS+132+66) && (mouseY < Y_OFS+132+132))
+      {
+        g.image(img_axis_z_cw_hover,0,132+66,img_axis_z_cw_hover.width*PANEL_SCALE,img_axis_z_cw_hover.height*PANEL_SCALE);
+        if(mousePressed) cs.anim_Z_CW_begin();
+      }
+      else
+      {
+        g.image(img_axis_z_cw,0,132+66,img_axis_z_cw.width*PANEL_SCALE,img_axis_z_cw.height*PANEL_SCALE);
+      }
+    g.endDraw();
+    s.setTexture(g);
+    shape(s);
+  }
+}
+
 class CPawnCmd
 {
   public int cubeN;
@@ -664,7 +784,7 @@ class CPawnLogic // interface to/from Pawn
     // Load all files for "Resources"
     int count_files =0;
     ArrayList <String> files = new ArrayList<String>();
-    File f = new File("..//WoWCube//Resources");
+    File f = new File("../WOWCube/Resources");
     for (File item : f.listFiles())
       if (!item.isDirectory())
         files.add(item.getName());
@@ -764,11 +884,11 @@ class CPawnLogic // interface to/from Pawn
 
 void setup()
 {
-  size(700, 700, P3D); // can use only numbers, not constants here :(
+  size(800, 700, P3D); // can use only numbers, not constants here :(
   textureMode(NORMAL);
   cs = new CCubeSet();
-  //cs.printPositionMatrix();
   dp = new CDebugPanel();
+  rp = new CRotatePanel();
   logic = new CPawnLogic();
   udp = new UDP(this, GUI_PORT);
   udp.listen(true);
@@ -801,6 +921,7 @@ void draw()
   popMatrix();
   
   dp.draw();
+  rp.draw();
 }
 
 void mouseDragged()
@@ -816,8 +937,8 @@ void keyPressed()
   {
     if(key == 'w') { cs.anim_X_CW_begin(); }
     if(key == 's') { cs.anim_X_CCW_begin(); }
-    if(key == 'q') { cs.anim_Y_CW_begin(); }
-    if(key == 'e') { cs.anim_Y_CCW_begin(); }
+    if(key == 'e') { cs.anim_Y_CW_begin(); }
+    if(key == 'q') { cs.anim_Y_CCW_begin(); }
     if(key == 'd') { cs.anim_Z_CW_begin(); }
     if(key == 'a') { cs.anim_Z_CCW_begin(); }
   }
