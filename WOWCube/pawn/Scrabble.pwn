@@ -120,8 +120,7 @@ GetWordIndexes(begin, length) {
 RememberWord (indexes[], coords[][]) {
     new i = 0;
     new letters{9};
-    color++;
-    //new randColor = randomInterval (79, 84);
+        //new randColor = randomInterval (79, 84);
 
     for (i = 0; i < 8; i++) {
         if (indexes[i] == -1){
@@ -133,7 +132,6 @@ RememberWord (indexes[], coords[][]) {
         new number = cube * 3 + face;
 
         for (new j = 0; j < 4; j++) {
-            printf ("j is: %d\n",j);
             if (faceColors[number]{j} == 0) {
                 faceColors[number]{j} = color;//randColor;
                 break;
@@ -141,6 +139,7 @@ RememberWord (indexes[], coords[][]) {
         }
         letters{i} = gameField{number} + 97;
     }
+    color++;
     letters{i} = EOS;
     CalculateScore(letters);
     // If the word on other side of the cube and player doesn't see it, play a sound (for example)
