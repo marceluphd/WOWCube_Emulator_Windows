@@ -27,6 +27,7 @@
             "command": "..\\Processing\\processing-java.exe --sketch=..\\WOWCube --run",
             "problemMatcher": []
         },
+    //***************************************** Scrabble *************************************************
         {
             "label": "WOWScrabble Run Pawn Logic Cube #0-8",
             "dependsOn": [
@@ -39,24 +40,6 @@
                 "WOWScrabble Run Pawn Logic Cube #6",
                 "WOWScrabble Run Pawn Logic Cube #7",
             ],
-            "problemMatcher": []
-        },
-        {
-            "label": "Pong Run Pawn Logic Cube #0",
-            "type": "shell",
-            "command": "..\\..\\Pawn\\bin\\pawnrun pong.amx 0",
-            "options": {
-                "cwd": "./pawn"
-            },
-            "problemMatcher": []
-        },
-        {
-            "label": "Pong Run Pawn Logic Cube #1",
-            "type": "shell",
-            "command": "..\\..\\Pawn\\bin\\pawnrun pong.amx 1",
-            "options": {
-                "cwd": "./pawn"
-            },
             "problemMatcher": []
         },
         {
@@ -126,6 +109,93 @@
             "label": "WOWScrabble Run Pawn Logic Cube #7",
             "type": "shell",
             "command": "..\\..\\Pawn\\bin\\pawnrun Scrabble.amx 7",
+            "options": {
+                "cwd": "./pawn"
+            },
+            "problemMatcher": []
+        },
+    //*************************************  Pong ************************************************************
+        {
+            "label": "Pong Cubes #0-8",
+            "dependsOn": [
+                "Pong Cube #0",
+                "Pong Cube #1",
+                "Pong Cube #2",
+                "Pong Cube #3",
+                "Pong Cube #4",
+                "Pong Cube #5",
+                "Pong Cube #6",
+                "Pong Cube #7",
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "Pong Cube #0",
+            "type": "shell",
+            "command": "..\\..\\Pawn\\bin\\pawnrun pong.amx 0",
+            "options": {
+                "cwd": "./pawn"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Pong Cube #1",
+            "type": "shell",
+            "command": "..\\..\\Pawn\\bin\\pawnrun pong.amx 1",
+            "options": {
+                "cwd": "./pawn"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Pong Cube #2",
+            "type": "shell",
+            "command": "..\\..\\Pawn\\bin\\pawnrun pong.amx 2",
+            "options": {
+                "cwd": "./pawn"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Pong Cube #3",
+            "type": "shell",
+            "command": "..\\..\\Pawn\\bin\\pawnrun pong.amx 3",
+            "options": {
+                "cwd": "./pawn"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Pong Cube #4",
+            "type": "shell",
+            "command": "..\\..\\Pawn\\bin\\pawnrun pong.amx 4",
+            "options": {
+                "cwd": "./pawn"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Pong Cube #5",
+            "type": "shell",
+            "command": "..\\..\\Pawn\\bin\\pawnrun pong.amx 5",
+            "options": {
+                "cwd": "./pawn"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Pong Cube #6",
+            "type": "shell",
+            "command": "..\\..\\Pawn\\bin\\pawnrun pong.amx 6",
+            "options": {
+                "cwd": "./pawn"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Pong Cube #7",
+            "type": "shell",
+            "command": "..\\..\\Pawn\\bin\\pawnrun pong.amx 7",
             "options": {
                 "cwd": "./pawn"
             },

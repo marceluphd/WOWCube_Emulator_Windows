@@ -48,32 +48,39 @@ new level [PROJECTION_MAX_X][PROJECTION_MAX_Y] = [
 */
 //qwasw
 public score = 0;
-//new allWords[5000][9];// = [[0, ...], ...];
+new color = 78;
 new levelWords [][] = [["abandon"], ["sun"], ["one"], ["banana"]];
-//new levelWords []{} = [{"abandon"}, {"sun"}, {"one"}, {"banana"}];
-//new levelWords {} = {"abandon", "sun", "one", "banana"};
-//new gameField[8][3];
 new gameField {24};
-//new faces2Change[8][3];// = [ [0, ... ], ... ];
-new faces2Change {} = {0,0,0, 0,0,0, 0,0,0, 0,0,0,
-                       0,0,0, 0,0,0, 0,0,0, 0,0,0};
-//new faces2Change[3] = [-1, ...];
+//new colorsInUse {} = {0,0,0, 0,0,0, 0,0,0, 0,0,0};
+new faceColors []{} = [{0,0,0,0}, {0,0,0,0}, {0,0,0,0},
+                      {0,0,0,0}, {0,0,0,0}, {0,0,0,0},
+                      {0,0,0,0}, {0,0,0,0}, {0,0,0,0},
+                      {0,0,0,0}, {0,0,0,0}, {0,0,0,0},
+                      {0,0,0,0}, {0,0,0,0}, {0,0,0,0},
+                      {0,0,0,0}, {0,0,0,0}, {0,0,0,0},
+                      {0,0,0,0}, {0,0,0,0}, {0,0,0,0},
+                      {0,0,0,0}, {0,0,0,0}, {0,0,0,0}];
+                       
+randomInterval(min, max) {    
+    new rand = random(max - min ) + min;  
+    return rand;
+}
 
 CalculateScore (scoreWord[]) {
     //for (new i = 0; i < wordsIndex; i++) {
     score += strlen(scoreWord);
     //}
 }
-
+/*
 // Change letters of founded word to new random one
 LightupLetters () {
     new letter;
     for (new i = 0; i < CUBES_MAX; i++) {
         for (new j = 0; j < FACES_PER_CUBE; j++) {
-            /*if (faces2Change[i][j] == 1) {
+            if (faces2Change[i][j] == 1) {
                 gameField[i][j] += 26;//random(26);
                 faces2Change[i][j] = -1;
-            }*/
+            }
             letter = gameField[i][j];
             if (letter > 25) {
                 letter -= 26;
@@ -86,7 +93,7 @@ LightupLetters () {
         }
     }
 
-    /*
+    
     // Plan B if random won't generate same numbers on each cube
     for (new j = 0; j < FACES_PER_CUBE; j++) {
         if (faces2Change[j] == 1) {
@@ -94,8 +101,8 @@ LightupLetters () {
             faces2Change[j] = -1;
         }
     }
-    */
-}
+    
+}*/
 
 // Get letters in order to form word on the faces of the cube
 GetWordIndexes(begin, length) {
@@ -113,19 +120,25 @@ GetWordIndexes(begin, length) {
 RememberWord (indexes[], coords[][]) {
     new i = 0;
     new letters{9};
+    color++;
+    //new randColor = randomInterval (79, 84);
+
     for (i = 0; i < 8; i++) {
         if (indexes[i] == -1){
             break;
         }
         new cube = coords[indexes[i]][0];
         new face = coords[indexes[i]][1];
-        /*if (cube == abi_cubeN) {
-            faces2Change[face] = 1;
-        }*/
-        //faces2Change[cube][face] = 1;
+
         new number = cube * 3 + face;
-        faces2Change{number} = 1;
-        //letters{i} = gameField[cube] [face] + 97;
+
+        for (new j = 0; j < 4; j++) {
+            printf ("j is: %d\n",j);
+            if (faceColors[number]{j} == 0) {
+                faceColors[number]{j} = color;//randColor;
+                break;
+            }
+        }
         letters{i} = gameField{number} + 97;
     }
     letters{i} = EOS;
@@ -263,6 +276,7 @@ Check_Z_Axis() {
 }
 
 CheckRotationAxis() {
+    color = 78;
     Check_X_Axis();
     Check_Y_Axis();
     Check_Z_Axis();
@@ -312,8 +326,9 @@ ReadDictionary(){
 }
 */
 onCubeAttach() {
-    printf("Cube attached\n");
+    //printf("Cube attached\n");
     new faceN = 0;
+    new colorN = 0;
     //new x = 0; // projection X
     //new y = 0; // projection Y
     //new a = 0; // projection Angle (face rotated at)
@@ -324,16 +339,30 @@ onCubeAttach() {
         //abi_InitialFacePositionAtProjection(abi_cubeN, faceN, x, y, a);
         //lettersResIDOriginal[abi_cubeN][faceN] = gameField[abi_cubeN][faceN];
         new number = abi_cubeN * 3 + faceN;
-        
-        if (faces2Change{number} == 1) {
+        abi_CMD_BITMAP(faceN, 0, 0, 0);
+        for (colorN = 0; colorN < 4; colorN++) {
+            //printf ("number - %d colorN - %d\n",number, colorN);
+            new curColor = faceColors[number]{colorN};
+            //printf ("%d\n",color);
+            if (curColor != 0) {
+                if (colorN > 0) {
+                    curColor += 6;
+                }
+                abi_CMD_BITMAP(faceN, curColor, 0, 0);
+                // Reset color
+                faceColors[number]{colorN} = 0;
+            }
+            else {
+                break;
+            }
+        }
+        /*if (faces2Change{number} == 1) {
             //abi_CMD_FILL(faceN, 34,177, 76);
         } else {
-            abi_CMD_BITMAP(faceN, 0000, 0,0);
-        }
+            
+        }*/
         //lettersResIDOriginal[abi_cubeN][faceN] = letter;
-        lettersResIDOriginal[abi_cubeN][faceN] = gameField{number} + 53;
-        // Reset lightup
-        faces2Change{number} = 0;
+        lettersResIDOriginal[abi_cubeN][faceN] = gameField{number} + 52;
     }
 
     // Draw a part of level on this cube's face 0-2
@@ -350,12 +379,12 @@ onCubeDetach() {
 }
 
 run(const pkt[], size, const src[]) {
-    printf("run function! of cube: %d\n", abi_cubeN);
+    //printf("run function! of cube: %d\n", abi_cubeN);
     abi_LogRcvPkt(pkt, size, src); // debug
 
     switch(abi_GetPktByte(pkt, 0)) {
         case CMD_PAWN_DEBUG: {
-            printf("[%s] CMD_PAWN_DEBUG\n", src);
+            //printf("[%s] CMD_PAWN_DEBUG\n", src);
         }
 
         case CMD_TICK: {
@@ -363,7 +392,7 @@ run(const pkt[], size, const src[]) {
         }
 
         case CMD_ATTACH: {
-            printf("[%s] CMD_ATTACH\n", src);
+            //printf("[%s] CMD_ATTACH\n", src);
             abi_attached = 1;
             //if (size == 97) {
             abi_DeserializePositonsMatrix(pkt);
@@ -382,7 +411,7 @@ run(const pkt[], size, const src[]) {
         }
 
         case CMD_DETACH: {
-            printf("[%s] CMD_DETACH\n", src);
+            //printf("[%s] CMD_DETACH\n", src);
             abi_attached = 0;
             onCubeDetach();
         }
@@ -410,6 +439,7 @@ main() {
    /* new huy{} = {"huy"}
     new huyna{} = {"adahuyna"};
     printf("%d\n",strfind(huyna, huy));*/
+    //printf("%d\n",sizeof(faceColors));
     GetGameField();
     //ReadDictionary();
     new opt{100};
