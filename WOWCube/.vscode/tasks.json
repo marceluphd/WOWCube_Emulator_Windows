@@ -4,6 +4,7 @@
     "version": "2.0.0",
     "tasks": [
         {
+<<<<<<< HEAD
             "label": "Scrabble Compile Pawn Logic",
             "type": "shell",
             "command": "..\\..\\Pawn\\bin\\pawncc Scrabble.pwn",
@@ -16,12 +17,18 @@
             "label": "Pong Compile Pawn Logic",
             "type": "shell",
             "command": "..\\..\\Pawn\\bin\\pawncc pong.pwn",
+=======
+            "label": "1) WOWCube compile Pipes game logic (Pawn language)",
+            "type": "shell",
+            "command": "../../Pawn/bin/pawncc pipes.pwn -ogame",
+>>>>>>> origin
             "options": {
                 "cwd": "./pawn"
             },
             "problemMatcher": []
         },
         {
+<<<<<<< HEAD
             "label": "WOWCube Run GUI",
             "type": "shell",
             "command": "..\\Processing\\processing-java.exe --sketch=..\\WOWCube --run",
@@ -112,10 +119,24 @@
             "options": {
                 "cwd": "./pawn"
             },
+=======
+            "label": "2) WOWCube run #0-7 Cube game logic (Pawn language)",
+            "dependsOn": [
+                "WOWCube run #0",
+                "WOWCube run #1",
+                "WOWCube run #2",
+                "WOWCube run #3",
+                "WOWCube run #4",
+                "WOWCube run #5",
+                "WOWCube run #6",
+                "WOWCube run #7",
+            ],
+>>>>>>> origin
             "problemMatcher": []
         },
     //*************************************  Pong ************************************************************
         {
+<<<<<<< HEAD
             "label": "Pong Cubes #0-8",
             "dependsOn": [
                 "Pong Cube #0",
@@ -133,69 +154,122 @@
             "label": "Pong Cube #0",
             "type": "shell",
             "command": "..\\..\\Pawn\\bin\\pawnrun pong.amx 0",
+=======
+            "label": "3) WOWCube run GUI emulator (Processing language)",
+            "type": "shell",
+            "command": "../Processing/processing-java.exe --sketch=../WOWCube --run",
+            "problemMatcher": []
+        },
+        {
+            "label": "WOWCube run #0",
+            "type": "shell",
+            "command": "../../Pawn/bin/pawnrun game.amx 0",
+>>>>>>> origin
             "options": {
                 "cwd": "./pawn"
             },
             "problemMatcher": []
         },
         {
+<<<<<<< HEAD
             "label": "Pong Cube #1",
             "type": "shell",
             "command": "..\\..\\Pawn\\bin\\pawnrun pong.amx 1",
+=======
+            "label": "WOWCube run #1",
+            "type": "shell",
+            "command": "../../Pawn/bin/pawnrun game.amx 1",
+>>>>>>> origin
             "options": {
                 "cwd": "./pawn"
             },
             "problemMatcher": []
         },
         {
+<<<<<<< HEAD
             "label": "Pong Cube #2",
             "type": "shell",
             "command": "..\\..\\Pawn\\bin\\pawnrun pong.amx 2",
+=======
+            "label": "WOWCube run #2",
+            "type": "shell",
+            "command": "../../Pawn/bin/pawnrun game.amx 2",
+>>>>>>> origin
             "options": {
                 "cwd": "./pawn"
             },
             "problemMatcher": []
         },
         {
+<<<<<<< HEAD
             "label": "Pong Cube #3",
             "type": "shell",
             "command": "..\\..\\Pawn\\bin\\pawnrun pong.amx 3",
+=======
+            "label": "WOWCube run #3",
+            "type": "shell",
+            "command": "../../Pawn/bin/pawnrun game.amx 3",
+>>>>>>> origin
             "options": {
                 "cwd": "./pawn"
             },
             "problemMatcher": []
         },
         {
+<<<<<<< HEAD
             "label": "Pong Cube #4",
             "type": "shell",
             "command": "..\\..\\Pawn\\bin\\pawnrun pong.amx 4",
+=======
+            "label": "WOWCube run #4",
+            "type": "shell",
+            "command": "../../Pawn/bin/pawnrun game.amx 4",
+>>>>>>> origin
             "options": {
                 "cwd": "./pawn"
             },
             "problemMatcher": []
         },
         {
+<<<<<<< HEAD
             "label": "Pong Cube #5",
             "type": "shell",
             "command": "..\\..\\Pawn\\bin\\pawnrun pong.amx 5",
+=======
+            "label": "WOWCube run #5",
+            "type": "shell",
+            "command": "../../Pawn/bin/pawnrun game.amx 5",
+>>>>>>> origin
             "options": {
                 "cwd": "./pawn"
             },
             "problemMatcher": []
         },
         {
+<<<<<<< HEAD
             "label": "Pong Cube #6",
             "type": "shell",
             "command": "..\\..\\Pawn\\bin\\pawnrun pong.amx 6",
+=======
+            "label": "WOWCube run #6",
+            "type": "shell",
+            "command": "../../Pawn/bin/pawnrun game.amx 6",
+>>>>>>> origin
             "options": {
                 "cwd": "./pawn"
             },
             "problemMatcher": []
         },
         {
+<<<<<<< HEAD
             "label": "Pong Cube #7",
             "type": "shell",
             "command": "..\\..\\Pawn\\bin\\pawnrun pong.amx 7",
+=======
+            "label": "WOWCube run #7",
+            "type": "shell",
+            "command": "../../Pawn/bin/pawnrun game.amx 7",
+>>>>>>> origin
             "options": {
                 "cwd": "./pawn"
             },
