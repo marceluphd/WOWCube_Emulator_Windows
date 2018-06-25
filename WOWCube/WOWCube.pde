@@ -911,7 +911,7 @@ void draw()
   }
 
   logic.draw();
-  cs.drawOverlays(false, false, false, false);
+  cs.drawOverlays(true, true, false, false);
  
   pushMatrix();
     translate(2.2*FSP, 2.2*FSP, -3.0*FSP);

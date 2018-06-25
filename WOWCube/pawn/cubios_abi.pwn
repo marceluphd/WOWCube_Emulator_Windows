@@ -57,16 +57,16 @@ new abi_attached = 0; // 0 - cubes detached (rotating), 1 - cubes attached
 // ABI helpers
 abi_LogRcvPkt(const pkt[], size, const src[])
 {
- /* printf("[%s] rcv pkt[%d]: ", src, size);
+  printf("[%s] rcv pkt[%d]: ", src, size);
   for(new i=0; i<size; i++) printf(" %02x", abi_GetPktByte(pkt, i));
-  printf("\n");*/
+  printf("\n");
 }
 
 abi_LogSndPkt(const pkt[], size, const cubeN)
 {
-  /*printf("[127.0.0.1:%d] snd pkt[%d]: ", PAWN_PORT_BASE+cubeN, size);
+  printf("[127.0.0.1:%d] snd pkt[%d]: ", PAWN_PORT_BASE+cubeN, size);
   for(new i=0; i<size; i++) printf(" %02x", abi_GetPktByte(pkt, i));
-  printf("\n");*/
+  printf("\n");
 }
 
 abi_LogPositionsMatrix()
@@ -134,7 +134,7 @@ abi_CMD_FILL(const faceN, const R, const G, const B)
   new pkt[2] = 0;
   pkt[0] = (R << 16) | (faceN << 8) | CMD_FILL;
   pkt[1] = (B << 16) | (G & 0x0000FFFF);
-  abi_LogSndPkt(pkt, 2*4, abi_cubeN);
+  //abi_LogSndPkt(pkt, 2*4, abi_cubeN);
   sendpacket(pkt, 2, GUI_ADDR);
 }
 
@@ -144,7 +144,7 @@ abi_CMD_BITMAP(const faceN, const resID, const x, const y)
   new pkt[2] = 0;
   pkt[0] = (resID << 16) | (faceN << 8) | CMD_BITMAP;
   pkt[1] = (y << 16) | (x & 0x0000FFFF);
-  abi_LogSndPkt(pkt, 2*4, abi_cubeN);
+  //abi_LogSndPkt(pkt, 2*4, abi_cubeN);
   sendpacket(pkt, 2, GUI_ADDR);
 }
 

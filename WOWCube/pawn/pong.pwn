@@ -11,41 +11,70 @@ new level [PROJECTION_MAX_X][PROJECTION_MAX_Y] = [
     [ -1, -1, 23, 23, -1, -1]
 ];
 
+new adjacencyList []{} = [
+                    //+x +y -y -x
+                      { 2,  1, 0, 0}, { 0,  2,0,0}, { 1,  0,0,0},
+                      { 5,  4, 0, 0}, { 3,  5,0,0}, { 4,  3,0,0},
+                      { 8,  7, 0, 0}, { 6,  8,0,0}, { 7,  6,0,0},
+                      {11, 10, 0, 0}, { 9, 11,0,0}, {10,  9,0,0},
+                      {14, 13, 0, 0}, {12, 14,0,0}, {13, 12,0,0},
+                      {17, 16, 0, 0}, {15, 17,0,0}, {16, 15,0,0},
+                      {19, 20, 0, 0}, {18, 20,0,0}, {19, 18,0,0},
+                      {23, 22, 0, 0}, {21, 23,0,0}, {22, 21,0,0}
+                      ];
+
+// Arrays storing coordinates of element for identificate the cube
+//new iNx {} = {6,5,3, 7,2,0, 7,0,2, 6,3,5, 2,1,2, 3,3,4, 3,4,3, 2,2,1}; // innerNeighboursX
+//new iNy {} = {2,2,0, 2,0,3, 3,3,5, 3,5,3, 2,2,1, 2,1,2, 3,3,4, 3,4,3}; // innerNeighboursY
+//new iNx {} = {6, 7, 7, 6, 2, 3, 3, 2}; // innerNeighboursX
+//new iNy {} = {2, 2, 3, 3, 2, 2, 3, 3}; // innerNeighboursY
+new iNx {} = {6,5,3,        7,0,2,        2,1,2,        3,4,3}; // innerNeighboursX
+new iNy {} = {2,2,0,        3,3,5,        2,2,1,        3,3,4}; // innerNeighboursY
+// Arrays storing coordinates of each face outer neighbour
+/*new oNx {} =  {7,6, 5,4, 3,2,
+               7,6, 3,2, 1,0,
+               6,7, 0,1, 2,3,
+               6,7, 2,3, 4,5,
+               3,2, 1,0, 2,3,
+               3,2, 2,3, 5,4,
+               2,3, 4,5, 3,2,
+               2,3, 3,2, 0,1};  // outerNeighboursX
+new oNy {} =  {2,3, 3,2, 1,0,
+               3,2, 0,1, 2,3,
+               3,2, 2,3, 4,5,
+               2,3, 5,4, 3,2,
+               2,3, 3,2, 0,1,
+               3,2, 1,0, 2,3,
+               3,2, 2,3, 5,4,
+               2,3, 4,5, 3,2};  // outerNeighboursY*/
+// Arrays storing coordinates of each face outer neighbour
+new oNx {} =  {7,6, 5,4, 3,2,
+               //7,6, 3,2, 1,0,
+               6,7, 0,1, 2,3,
+               //6,7, 2,3, 4,5,
+               3,2, 1,0, 2,3,
+               //3,2, 2,3, 5,4,
+               2,3, 4,5, 3,2};
+               //2,3, 3,2, 0,1};  // outerNeighboursX
+new oNy {} =  {2,3, 3,2, 1,0,
+               //3,2, 0,1, 2,3,
+               3,2, 2,3, 4,5,
+               //2,3, 5,4, 3,2,
+               2,3, 3,2, 0,1,
+               //3,2, 1,0, 2,3,
+               3,2, 2,3, 5,4};
+               //2,3, 4,5, 3,2};  // outerNeighboursY
 
 public score = 0;
 new speedX = 5;
-new speedY = 0;
+new speedY = 4;
 
 new positionX = 90;
 new positionY = 10;
 
-new currFace = 0;
-
+new currFacePos = 0;
 new currCubePos = 0;
-//new allWords[5000][9];// = [[0, ...], ...];
-new levelWords [][] = [["abandon"], ["sun"], ["one"], ["banana"]];
-//new levelWords []{} = [{"abandon"}, {"sun"}, {"one"}, {"banana"}];
-//new levelWords {} = {"abandon", "sun", "one", "banana"};
-//new gameField[8][3];
-new gameField {} = {8,8,8, 8,8,8, 8,8,8, 8,8,8,
-                    8,8,8, 8,8,8, 8,8,8, 8,8,8};
-//new faces2Change[8][3];// = [ [0, ... ], ... ];
-new faces2Change {} = {0,0,0, 0,0,0, 0,0,0, 0,0,0,
-                       0,0,0, 0,0,0, 0,0,0, 0,0,0};
-//new faces2Change[3] = [-1, ...];
 
-GetGameField() {
-    for (new x = 0; x < 8; x++) {
-        for (new y = 0; y < 6; y++) {
-            new cubeID = abi_initial_pm[x][y][0];
-            new faceID = abi_initial_pm[x][y][1];
-            if (cubeID != 0xFF) {
-                //gameField[cubeID][faceID] = level[x][y];
-                gameField{cubeID * 3 + faceID} = level[x][y];
-            }
-        }
-    }
-}
 
 CheckSide(x, y) {
     if ((x < 0) || (x >= PROJECTION_MAX_X)) {
@@ -60,39 +89,87 @@ CheckSide(x, y) {
     return 1;
 }
 
+// xN - positive x, inner neighbour
+// yN - positive y, inner neighbour
+AddInnerNeightbour (me, xN, yN) {
+    adjacencyList [me] {0} = xN;
+    adjacencyList [me] {1} = yN;
+}
+
+// nxN - negative x, outer neighbour
+// nyN - negative y, outer neighbour
+AddOuterNeighbour (me, nxN, nyN) {
+    adjacencyList [me]  {2} = nxN;
+    adjacencyList [nxN] {3} = me;
+
+    adjacencyList [me]  {3} = nyN;
+    adjacencyList [nyN] {2} = me;
+}
+
 GetNeightbours () {
-    printf("GetNeightbours\n");
-    for(new x=0; x < PROJECTION_MAX_X; x++) {
-        for(new y=0; y < (PROJECTION_MAX_Y - 1); y++) {
-            new prevCube = abi_pm[x][y][0];
-            if (prevCube != 0xFF) {
-                printf("prevCube = %d\n", prevCube);
-                new nextCube = abi_pm[x][y+1][0];
-                if (nextCube != 0xFF) {
-                    printf("nextCube = %d\n", nextCube);
-                    if (prevCube != nextCube) {
-                        printf("remember neightbours\n");
-                        new prevFace = abi_pm[x][y][1];
-                        new nextFace = abi_pm[x][y+1][1];
-                        gameField{prevCube * 3 + prevFace} = nextCube;
-                        gameField{nextCube * 3 + nextFace} = prevCube;
-                    }
-                }
-            }
-        }
+    new face0;
+    new face1;
+    new face2;
+    new faceX;
+    new faceY;
+    new cube;
+    // Get neighbours inside cube, connection between its faces
+    // and outer neighbours, connection between edges -x and -y
+    for (new i = 0, j = 0; i < 12; i+=3) {
+        // Inner
+        cube = abi_pm[iNx{i}][iNy{i}][0];
+        face0 = cube * 3 + abi_pm[iNx{i    }][iNy{i   }][1];
+        face1 = cube * 3 + abi_pm[iNx{i + 1}][iNy{i + 1}][1];
+        face2 = cube * 3 + abi_pm[iNx{i + 2}][iNy{i + 2}][1];
+
+        // Connect both inner neighbours for each face
+        // 1 face
+        //AddInnerNeightbour (face0, face2, face1);
+        // 2 face
+        //AddInnerNeightbour (face1, face0, face2);
+        // 3 face
+        //AddInnerNeightbour (face2, face1, face0);
+
+        // If cube's number is odd
+        //if ((cube % 2) > 0) {
+            // Find and connect both outer neighbours for each face
+            // 1 face
+            faceX = abi_pm[oNx{j}][oNy{j}][0] * 3 + abi_pm[oNx{j}][oNy{j ++}][1];
+            faceY = abi_pm[oNx{j}][oNy{j}][0] * 3 + abi_pm[oNx{j}][oNy{j ++}][1];
+            AddOuterNeighbour (face0, faceX, faceY);
+            // 2 face
+            faceX = abi_pm[oNx{j}][oNy{j}][0] * 3 + abi_pm[oNx{j}][oNy{j ++}][1];
+            faceY = abi_pm[oNx{j}][oNy{j}][0] * 3 + abi_pm[oNx{j}][oNy{j ++}][1];
+            AddOuterNeighbour (face1, faceX, faceY);
+            // 3 face
+            faceX = abi_pm[oNx{j}][oNy{j}][0] * 3 + abi_pm[oNx{j}][oNy{j ++}][1];
+            faceY = abi_pm[oNx{j}][oNy{j}][0] * 3 + abi_pm[oNx{j}][oNy{j ++}][1];
+            AddOuterNeighbour (face2, faceX, faceY);
+            //j += 6;
+        //}
     }
 }
 
 PrintNeighbours(){
     printf("PrintNeighbours\n");
-    for(new x = 0; x < CUBES_MAX; x++) {
-        printf("%d - %d - %d\n",gameField{x * 3}, gameField{x * 3 + 1}, gameField{x * 3 + 2});
+    for (new cube = 0; cube < 8; cube++) {
+        for (new face = 0; face < 3; face++) {
+            printf("%d %d %d %d\n",adjacencyList[cube*3+face]{0},
+                                   adjacencyList[cube*3+face]{1},
+                                   adjacencyList[cube*3+face]{2},
+                                   adjacencyList[cube*3+face]{3});
+        }
     }
 }
 
 onCubeAttach() {
+    for (new face = 0; face <3 ; face++){
+        abi_CMD_FILL(face, 0 ,0 ,0);
+    }
     GetNeightbours();
     PrintNeighbours();
+    //GetNeightbours();
+    //PrintNeighbours();
     //printf("Cube attached\n");
    
 }
@@ -104,57 +181,78 @@ onCubeDetach() {
   //abi_CMD_FILL(2,0,0,255);
 }
 
+GetCubeAndFace (faceNumber, &cube, &face) {
+    cube = faceNumber/3;
+    face = faceNumber%3;
+}
+
+MoveTo (&posX, &posY, &spdX, &spdY, destination) {
+    new temp;
+    // "Swap" positions
+    temp = posX;
+    posX = posY;
+    posY = temp;
+
+    // Swap speeds
+    temp = spdX;
+    spdX = spdY;
+    spdY = temp;
+
+    // Moving to another face we change axis to move
+    spdY *= -1;
+
+    if (posX >= 240) {
+        posX = 239;
+    }
+    if (posY >= 240) {
+        posY = 239;
+    }
+    GetCubeAndFace (destination, currCubePos, currFacePos);
+    //abi_CUBE_2_CUBE(currCubePos);
+    //printf("change to cube = %d face = %d\n", currCubePos, currFacePos);
+}
+
 onCubeTick() {
-    if (abi_cubeN == currCubePos) {
+    //printf("abi_cubeN = %d currCubePos = %d\n", abi_cubeN, currCubePos);
+    //if (abi_cubeN == currCubePos) {
         if (positionX >= 240) {
-            //if (CheckSide(x))
-            //new temp = positionX;
-            positionX = positionY;
-            positionY = 235;
-
-            new temp = speedX;
-            speedX = speedY;
-            speedY = temp;
-
-            speedY *= -1;
-            currFace--;
-
-            if (currFace < 0) {
-                currFace = 2;
-            }
-        } else if (positionY >= 240) {
-            //new temp = positionX;
-            positionY = positionX;
-            positionX = 235;
-
-            new temp = speedY;
-            speedY = speedX;
-            speedX = temp;
-
-            speedX *= -1;
-            currFace++;
-
-            if (currFace > 2) {
-                currFace = 0;
-            }
+            MoveTo (positionX, positionY, speedX, speedY,
+                    adjacencyList[currCubePos * 3 + currFacePos]{0});
+        }
+        else if (positionY >= 240) {
+            MoveTo (positionY, positionX, speedY, speedX,
+                    adjacencyList[currCubePos * 3 + currFacePos]{1});
+        }
+        else if (positionY <= 0) {
+            //printf("MoveTo -x\n");
+            MoveTo (positionX, positionY, speedY, speedX,
+                    adjacencyList[currCubePos * 3 + currFacePos]{2});
+        } 
+        else if (positionX <= 0) {
+            //printf("MoveTo -x\n");
+            MoveTo (positionX, positionY, speedX, speedY,
+                    adjacencyList[currCubePos * 3 + currFacePos]{3});
         }
         
-        if (positionX <= 1) {
-            //if (CheckSide(x+1, y)) {
-                speedX *= -1;
-            //}
+                
+        /*if (positionX <= 1) {
+            speedX *= -1;
         }
         if (positionY <= 1) {
             speedY *= -1;
+        }*/
+        if (abi_cubeN == currCubePos) {
+            abi_CMD_BITMAP (currFacePos, 0, 0, 0);
+            abi_CMD_BITMAP (currFacePos, 90, positionX, positionY);
         }
-        abi_CMD_FILL(currFace,0,0,0);
-        abi_CMD_BITMAP (currFace, 78, positionX += speedX, positionY += speedY);
-    }
+        positionX += speedX;
+        positionY += speedY;
+    //}
 }
 
 run(const pkt[], size, const src[]) {
     //printf("run function! of cube: %d\n", abi_cubeN);
-    abi_LogRcvPkt(pkt, size, src); // debug
+    //abi_LogRcvPkt(pkt, size, src); // debug
 
     switch(abi_GetPktByte(pkt, 0)) {
         case CMD_PAWN_DEBUG: {
@@ -162,7 +260,7 @@ run(const pkt[], size, const src[]) {
         }
 
         case CMD_TICK: {
-            //onCubeTick();
+            onCubeTick();
             //printf("[%s] CMD_TICK\n", src);
         }
 
@@ -185,13 +283,6 @@ run(const pkt[], size, const src[]) {
 }
 
 main() {
-    //GetGameField();
-    /*new face = face0;
-    for (new i = 0; i<3;i++){
-        printf("%d - ",face0);
-        face0++;
-    }
-    return;*/
     new opt{100};
     argindex(0, opt);
     abi_cubeN = strval(opt);

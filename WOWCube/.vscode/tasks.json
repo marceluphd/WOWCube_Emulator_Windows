@@ -6,7 +6,7 @@
         {
             "label": "1) WOWCube compile Pipes game logic (Pawn language)",
             "type": "shell",
-            "command": "../../Pawn/bin/pawncc Scrabble.pwn -ogame",
+            "command": "../../Pawn/bin/pawncc pong.pwn -ogame",
             "options": {
                 "cwd": "./pawn"
             },
