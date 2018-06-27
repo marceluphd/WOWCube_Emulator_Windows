@@ -4,7 +4,7 @@
 #include <string>
 #include <datagram>
 #else // HW
-native sendpacket(const packet[], size, const destination[]=``'');
+native sendpacket(const packet[], const size);
 #endif
 
 // ABI global constants
@@ -140,7 +140,11 @@ abi_CMD_REDRAW(const faceN)
   new pkt[1] = 0;
   pkt[0] = ((faceN & 0xFF) << 8) | (CMD_REDRAW & 0xFF);
   //abi_LogSndPkt(pkt, 1*4, abi_cubeN);
+#if defined CUBIOS_EMULATOR
   sendpacket(pkt, 1, GUI_ADDR);
+#else
+  sendpacket(pkt, 1);
+#endif
 }
 
 abi_CMD_FILL(const R, const G, const B)
@@ -148,7 +152,11 @@ abi_CMD_FILL(const R, const G, const B)
   new pkt[1] = 0;
   pkt[0] = ((B & 0x1F) << 24) | ((G & 0x3F) << 16) | ((R & 0x1F) << 8) | (CMD_FILL & 0xFF); // RGB565, Rmax=31, Gmax=63, Bmax=31
   //abi_LogSndPkt(pkt, 1*4, abi_cubeN);
+#if defined CUBIOS_EMULATOR
   sendpacket(pkt, 1, GUI_ADDR);
+#else
+  sendpacket(pkt, 1);
+#endif
 }
 
 abi_CMD_BITMAP(const resID, const x, const y, const angle)
@@ -158,7 +166,11 @@ abi_CMD_BITMAP(const resID, const x, const y, const angle)
   pkt[1] = ((angle & 0xFF) << 24) | ((y & 0xFFFF) << 8) | ((x & 0xFF00) >> 8);
   pkt[2] = ((angle & 0xFF00) >> 8);
   //abi_LogSndPkt(pkt, 3*4, abi_cubeN);
+#if defined CUBIOS_EMULATOR
   sendpacket(pkt, 3, GUI_ADDR);
+#else
+  sendpacket(pkt, 3);
+#endif
 }
 
 // Process binary commands from GUI
