@@ -1,4 +1,6 @@
- #include "cubios_abi.pwn"
+#define CUBIOS_EMULATOR
+#include "cubios_abi.pwn"
+forward run(const pkt[], size, const src[]) // public Pawn function seen from C
 
 // TODO: put your Game logic here
 #define PIPES_BASE 0
@@ -284,7 +286,7 @@ onCubeDetach()
     steam_draw[faceN]=0;
 }
 
-run(const pkt[], size, const src[])
+public run(const pkt[], size, const src[]) // public Pawn function seen from C
 {
   //abi_LogRcvPkt(pkt, size, src); // debug
 

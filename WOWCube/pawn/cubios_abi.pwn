@@ -1,7 +1,11 @@
+#if defined CUBIOS_EMULATOR
 #include <core>
 #include <args>
 #include <string>
 #include <datagram>
+#else // HW
+native sendpacket(const packet[], size, const destination[]=``'');
+#endif
 
 // ABI global constants
 #define GUI_ADDR "127.0.0.1:9999"
@@ -24,8 +28,6 @@
 #define CUBES_MAX 8
 #define FACES_PER_CUBE 3
 #define RIBS_PER_CUBE 4
-
-
 
 // Initial "Positions Matrix" 8x6-24 "projection", each node in 2D matrix is {cubeID,faceID}
 new const abi_initial_pm[][][] = [
@@ -57,6 +59,7 @@ new abi_pm[PROJECTION_MAX_X][PROJECTION_MAX_Y][2]; // positions matrix
 new abi_attached = 0; // 0 - cubes detached (rotating), 1 - cubes attached
 
 // ABI helpers
+#if defined CUBIOS_EMULATOR
 abi_LogRcvPkt(const pkt[], size, const src[])
 {
   printf("[%s] rcv pkt[%d]: ", src, size);
@@ -86,6 +89,7 @@ abi_LogPositionsMatrix()
   }
   printf("\n");
 }
+#endif
 
 abi_GetPktByte(const pkt[], const n)
 {
@@ -158,6 +162,7 @@ abi_CMD_BITMAP(const resID, const x, const y, const angle)
 }
 
 // Process binary commands from GUI
+#if defined CUBIOS_EMULATOR
 @receivepacket(const packet[], size, const source[])
 {
   run(packet, size, source);
@@ -168,3 +173,4 @@ abi_CMD_BITMAP(const resID, const x, const y, const angle)
 {
   exit;
 }
+#endif
