@@ -58,15 +58,13 @@ rotateFigureBitwisePipes(figure, angle)
 drawInterPipesConnector(x, y, _resID)
 {
   new resID = rotateFigureBitwise(_resID, abi_pam[x][y]);
-  //new cubeN = abi_pm[x][y][0];
-  new faceN = abi_pm[x][y][1];
   
   switch(resID)
   {
-    case 8: { abi_CMD_BITMAP(faceN, resID, 240/2-120/2, 0); } // top 1000
-    case 4: { abi_CMD_BITMAP(faceN, resID, 240-32, 240/2-120/2); } // right 0100
-    case 2: { abi_CMD_BITMAP(faceN, resID, 240/2-120/2, 240-32); } // bottom 0010
-    case 1: { abi_CMD_BITMAP(faceN, resID, 0, 240/2-120/2); } // left 0001
+    case 8: { abi_CMD_BITMAP(resID, 240/2-120/2, 0, 0); } // top 1000
+    case 4: { abi_CMD_BITMAP(resID, 240-32, 240/2-120/2, 0); } // right 0100
+    case 2: { abi_CMD_BITMAP(resID, 240/2-120/2, 240-32, 0); } // bottom 0010
+    case 1: { abi_CMD_BITMAP(resID, 0, 240/2-120/2, 0); } // left 0001
   }
 }
 isFace(x, y) // is face in Projection Matrix is out-of-bound or empty field or normal cube's face
@@ -131,8 +129,10 @@ onCubeAttach()
   for(faceN=0; faceN<FACES_PER_CUBE; faceN++)
   {
     steam_draw[faceN]=0;
-    abi_CMD_BITMAP(faceN, pipesResIDRotated[abi_cubeN][faceN], 0, 0);
+    abi_CMD_BITMAP(pipesResIDRotated[abi_cubeN][faceN], 0, 0, 0);
+    abi_CMD_REDRAW(faceN);
   }
+
   // Check if top or right neighbors are connected
   for(x=0; x<PROJECTION_MAX_X; x++)
   {
@@ -260,7 +260,8 @@ drawSteam()
         }
       if (steam_frame[faceN][ribN]>0)
       {
-        abi_CMD_BITMAP(faceN, STEAM_BASE + steam_count_base[ribN]*STEAM_COUNT + steam_frame[faceN][ribN], steam_x[ribN], steam_y[ribN]);
+        abi_CMD_BITMAP(STEAM_BASE + steam_count_base[ribN]*STEAM_COUNT + steam_frame[faceN][ribN], steam_x[ribN], steam_y[ribN], 0);
+        abi_CMD_REDRAW(faceN);
         steam_frame[faceN][ribN]++;
       }
     }
@@ -279,9 +280,6 @@ onTick()
 
 onCubeDetach()
 {
-  //abi_CMD_FILL(0,255,0,0);
-  //abi_CMD_FILL(1,0,255,0);
-  //abi_CMD_FILL(2,0,0,255);
   for(new faceN=0; faceN<FACES_PER_CUBE; faceN++)
     steam_draw[faceN]=0;
 }
@@ -292,11 +290,6 @@ run(const pkt[], size, const src[])
 
   switch(abi_GetPktByte(pkt, 0))
   {
-    case CMD_PAWN_DEBUG:
-    {
-      printf("[%s] CMD_PAWN_DEBUG\n", src);
-    }
-
     case CMD_TICK:
     {
       //printf("[%s] CMD_TICK\n", src);

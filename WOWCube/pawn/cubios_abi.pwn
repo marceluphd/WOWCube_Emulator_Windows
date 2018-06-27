@@ -8,14 +8,13 @@
 #define PAWN_PORT_BASE  10000
 
 #define CMD_GUI_BASE    0
-#define CMD_GUI_DEBUG   CMD_GUI_BASE+1
-#define CMD_FILL        CMD_GUI_BASE+2 /* CMD_FILL,faceN,R,G,B */
-#define CMD_BITMAP      CMD_GUI_BASE+3 /* CMD_BITMAP,faceN,resID,X,Y */
+#define CMD_REDRAW      CMD_GUI_BASE+1 /* CMD_REDRAW,faceN - copy framebuffer contents to the face specified */
+#define CMD_FILL        CMD_GUI_BASE+2 /* CMD_FILL,R,G,B - to framebuffer, RGB565 */
+#define CMD_BITMAP      CMD_GUI_BASE+3 /* CMD_BITMAP,resID,X,Y,angle - to framebuffer, only angle=0|90|180|270 supported */
 #define CMD_PAWN_BASE   100
-#define CMD_PAWN_DEBUG  CMD_PAWN_BASE+1
-#define CMD_TICK        CMD_PAWN_BASE+2
-#define CMD_DETACH      CMD_PAWN_BASE+3
-#define CMD_ATTACH      CMD_PAWN_BASE+4 /* CMD_ATTACH, positions matrix here */
+#define CMD_TICK        CMD_PAWN_BASE+1
+#define CMD_DETACH      CMD_PAWN_BASE+2
+#define CMD_ATTACH      CMD_PAWN_BASE+3 /* CMD_ATTACH,positions_matrix_here */
 
 #define DISPLAY_PX  240 // 240x240
 
@@ -132,22 +131,30 @@ abi_InitialFacePositionAtProjection(const cubeN, const faceN, &projX, &projY, &p
 }
 
 // ABI functions - sends commands to GUI
-abi_CMD_FILL(const faceN, const R, const G, const B)
+abi_CMD_REDRAW(const faceN)
 {
-  new pkt[2] = 0;
-  pkt[0] = (R << 16) | (faceN << 8) | CMD_FILL;
-  pkt[1] = (B << 16) | (G & 0x0000FFFF);
-  //abi_LogSndPkt(pkt, 2*4, abi_cubeN);
-  sendpacket(pkt, 2, GUI_ADDR);
+  new pkt[1] = 0;
+  pkt[0] = ((faceN & 0xFF) << 8) | (CMD_REDRAW & 0xFF);
+  //abi_LogSndPkt(pkt, 1*4, abi_cubeN);
+  sendpacket(pkt, 1, GUI_ADDR);
 }
 
-abi_CMD_BITMAP(const faceN, const resID, const x, const y)
+abi_CMD_FILL(const R, const G, const B)
 {
-  new pkt[2] = 0;
-  pkt[0] = (resID << 16) | (faceN << 8) | CMD_BITMAP;
-  pkt[1] = (y << 16) | (x & 0x0000FFFF);
-  //abi_LogSndPkt(pkt, 2*4, abi_cubeN);
-  sendpacket(pkt, 2, GUI_ADDR);
+  new pkt[1] = 0;
+  pkt[0] = ((B & 0x1F) << 24) | ((G & 0x3F) << 16) | ((R & 0x1F) << 8) | (CMD_FILL & 0xFF); // RGB565, Rmax=31, Gmax=63, Bmax=31
+  //abi_LogSndPkt(pkt, 1*4, abi_cubeN);
+  sendpacket(pkt, 1, GUI_ADDR);
+}
+
+abi_CMD_BITMAP(const resID, const x, const y, const angle)
+{
+  new pkt[3] = 0;
+  pkt[0] = ((x & 0xFF) << 24) | ((resID & 0xFFFF) << 8) | (CMD_BITMAP & 0xFF);
+  pkt[1] = ((angle & 0xFF) << 24) | ((y & 0xFFFF) << 8) | ((x & 0xFF00) >> 8);
+  pkt[2] = ((angle & 0xFF00) >> 8);
+  //abi_LogSndPkt(pkt, 3*4, abi_cubeN);
+  sendpacket(pkt, 3, GUI_ADDR);
 }
 
 // Process binary commands from GUI
