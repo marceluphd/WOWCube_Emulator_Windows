@@ -775,29 +775,6 @@ class CPawnCmd
   }
 }
 
-static final void copyImg(final PImage src, final PImage tgt) {
-  src.loadPixels();
-  tgt.loadPixels();
- 
-  arrayCopy(src.pixels, tgt.pixels);
-  tgt.updatePixels();
-}
-
-void copyPGraphics(PGraphics a, PGraphics b)
-{
-  // b = a;
-  a.loadPixels();
-  b.loadPixels();
-  b.beginDraw();
-  for (int i = 0; i < b.pixels.length; i++) 
-  {
-    b.pixels[i] = a.pixels[i];
-  }
-  //a.updatePixels();
-  b.updatePixels();
-  b.endDraw();
-}
-
 class CPawnLogic // interface to/from Pawn
 {
   private PImage res[]; // resources are loaded in "by name" order from Resources folder for all games
