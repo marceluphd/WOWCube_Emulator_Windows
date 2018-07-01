@@ -35,14 +35,13 @@ final int PAWN_PORT_BASE = 10000; // +cubeN
 
 // Each command applies to face's display, which number is next after command.
 final byte CMD_GUI_BASE    = 0;
-final byte CMD_GUI_DEBUG   = CMD_GUI_BASE +  1;
-final byte CMD_FILL        = CMD_GUI_BASE +  2; // CMD_CLEAR,faceN,R,G,B
-final byte CMD_BITMAP      = CMD_GUI_BASE +  3; // CMD_BITMAP,faceN,resID,X,Y
+final byte CMD_REDRAW      = CMD_GUI_BASE +  1; // CMD_REDRAW,faceN - copy framebuffer contents to the face specified
+final byte CMD_FILL        = CMD_GUI_BASE +  2; // CMD_FILL,R,G,B - to framebuffer, RGB565
+final byte CMD_BITMAP      = CMD_GUI_BASE +  3; // CMD_BITMAP,resID,X,Y,angle - to framebuffer, only angle=0|90|180|270 supported
 final byte CMD_PAWN_BASE   = 100;
-final byte CMD_PAWN_DEBUG  = CMD_PAWN_BASE + 1;
-final byte CMD_TICK        = CMD_PAWN_BASE + 2;
-final byte CMD_DETACH      = CMD_PAWN_BASE + 3;
-final byte CMD_ATTACH      = CMD_PAWN_BASE + 4; // CMD_ATTACH, TODO:positions matrix here
+final byte CMD_TICK        = CMD_PAWN_BASE + 1;
+final byte CMD_DETACH      = CMD_PAWN_BASE + 2;
+final byte CMD_ATTACH      = CMD_PAWN_BASE + 3; // CMD_ATTACH,positions_matrix_here
 final byte TICK_DELAY      = 100; //Tick Deley in milliseconds
 
 // LCD display object at cube's face
@@ -198,11 +197,12 @@ class CFace
   }
 }
 
-// Cube object is 1/8 of WOWCube. It has 3 faces with LCD displays.
+// Cube object is 1/8 of WOWCube. It has 3 faces with LCD displays. It uses 1 framebuffer.
 class CCube
 {
   public int cubeN;
-  CFace[] f = new CFace[3];
+  public CFace[] f = new CFace[3];
+  public PGraphics framebuffer;
   
   CCube(int _cubeN)
   {
@@ -221,6 +221,7 @@ class CCube
     f[2].rotateY(-90);
     f[2].rotateX(-180);
     f[2].translate(-FSP/2,0,0);
+    framebuffer = createGraphics(SSP, SSP, P2D);
   }
   
   void draw()
@@ -804,17 +805,26 @@ class CPawnLogic // interface to/from Pawn
       {
         switch(c.pkt[0])
         {
-          case CMD_GUI_DEBUG:
+          case CMD_REDRAW:
+            int faceN = c.pkt[1];
+            println("CMD_REDRAW: FRAMEBUFFER["+c.cubeN+"] --> cubeN="+c.cubeN+" faceN="+faceN);
+            PGraphics src = cs.c[c.cubeN].framebuffer;
+            PGraphics dst = cs.c[c.cubeN].f[faceN].d.g;
+            src.loadPixels();
+            dst.loadPixels();
+            dst.beginDraw();
+            arrayCopy(src.pixels, dst.pixels);
+            dst.updatePixels();
+            dst.endDraw();
           break;
           
           case CMD_FILL:
           {
-            int faceN = c.pkt[1];
-            int R = unhex(hex(c.pkt[3])+hex(c.pkt[2]));
-            int G = unhex(hex(c.pkt[5])+hex(c.pkt[4]));
-            int B = unhex(hex(c.pkt[7])+hex(c.pkt[6]));
-            println("CMD_FILL: cubeN="+c.cubeN+" faceN="+faceN+" R="+R+" G="+G+" B="+B);
-            PGraphics g = cs.c[c.cubeN].f[faceN].d.g;
+            int R = unhex(hex(c.pkt[1]));
+            int G = unhex(hex(c.pkt[2]));
+            int B = unhex(hex(c.pkt[3]));
+            println("CMD_FILL: R="+R+" G="+G+" B="+B+" --> FRAMEBUFFER["+c.cubeN+"]");
+            PGraphics g = cs.c[c.cubeN].framebuffer;
             g.beginDraw();
               g.background(R,G,B);
             g.endDraw();
@@ -823,12 +833,12 @@ class CPawnLogic // interface to/from Pawn
           
           case CMD_BITMAP:
           {
-            int faceN = c.pkt[1];
-            int resID = unhex(hex(c.pkt[3])+hex(c.pkt[2]));
-            int x = unhex(hex(c.pkt[5])+hex(c.pkt[4]));
-            int y = unhex(hex(c.pkt[7])+hex(c.pkt[6]));
-            println("CMD_BITMAP: cubeN="+c.cubeN+" faceN="+faceN+" resID="+resID+" x="+x+" y="+y);
-            PGraphics g = cs.c[c.cubeN].f[faceN].d.g;
+            int resID = unhex(hex(c.pkt[2])+hex(c.pkt[1]));
+            int x = unhex(hex(c.pkt[4])+hex(c.pkt[3]));
+            int y = unhex(hex(c.pkt[6])+hex(c.pkt[5]));
+            int angle = unhex(hex(c.pkt[8])+hex(c.pkt[7]));
+            println("CMD_BITMAP: resID="+resID+" x="+x+" y="+y+" angle="+angle+" --> FRAMEBUFFER["+c.cubeN+"]");
+            PGraphics g = cs.c[c.cubeN].framebuffer;
             g.beginDraw();
               g.image(res[resID],x,y);
             g.endDraw();
@@ -911,7 +921,7 @@ void draw()
   }
 
   logic.draw();
-  cs.drawOverlays(true, true, false, false);
+  cs.drawOverlays(false, false, false, false);
  
   pushMatrix();
     translate(2.2*FSP, 2.2*FSP, -3.0*FSP);
