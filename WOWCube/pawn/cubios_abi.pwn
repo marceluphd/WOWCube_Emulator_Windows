@@ -130,7 +130,7 @@ abi_InitialFacePositionAtProjection(const cubeN, const faceN, &projX, &projY, &p
 // ABI functions - sends commands to GUI
 abi_CMD_FILL(const faceN, const R, const G, const B)
 {
-  printf("abi_CMD_FILL\n");
+  //printf("abi_CMD_FILL\n");
   new pkt[2] = 0;
   pkt[0] = (R << 16) | (faceN << 8) | CMD_FILL;
   pkt[1] = (B << 16) | (G & 0x0000FFFF);
@@ -140,7 +140,7 @@ abi_CMD_FILL(const faceN, const R, const G, const B)
 
 abi_CMD_BITMAP(const faceN, const resID, const x, const y)
 {
-  printf("abi_CMD_BITMAP\n");
+  //printf("abi_CMD_BITMAP\n");
   new pkt[2] = 0;
   pkt[0] = (resID << 16) | (faceN << 8) | CMD_BITMAP;
   pkt[1] = (y << 16) | (x & 0x0000FFFF);

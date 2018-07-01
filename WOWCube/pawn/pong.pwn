@@ -64,6 +64,20 @@ new oNy {} =  {2,3, 3,2, 1,0,
                //3,2, 1,0, 2,3,
                3,2, 2,3, 5,4};
                //2,3, 4,5, 3,2};  // outerNeighboursY
+// Border type of the cube:
+// 0 - no exit
+// 1 - full exit
+// 2 - half exit up (closer to 0 coordinate)
+// 3 - half exit down (closer to 240 coordinate)
+// Which side we cross  x y
+new exitsFromCube {} = {1,1, 0,0, 0,0,
+                        0,1, 0,0, 0,0,
+                        1,1, 0,0, 0,0,
+                        1,1, 0,0, 0,0,
+                        0,0, 0,0, 0,0,
+                        0,0, 0,0, 0,0,
+                        0,0, 0,0, 0,0,
+                        0,0, 0,0, 0,0};
 
 public score = 0;
 new speedX = 5;
@@ -75,18 +89,26 @@ new positionY = 10;
 new currFacePos = 0;
 new currCubePos = 0;
 
+CheckNeighbour (neighbour, coordinates, sideFlag) {
+    //printf("check neighbour = %d, coordinates = %d\n", neighbour, coordinates);
+    new cube;
+    new face;
+    GetCubeAndFace (neighbour, cube, face);
+    return CheckFaceExit (exitsFromCube{cube * 6 + 2 * face + sideFlag}, coordinates);
+}
 
-CheckSide(x, y) {
-    if ((x < 0) || (x >= PROJECTION_MAX_X)) {
-        return 0;
+CheckFaceExit (side, coordinates) {
+    //printf("side = %d, coordinates = %d\n", side, coordinates);
+    new res = 0;
+    switch (side) {
+        //case 0: { res = 0; }
+        case 1: { res = 1; }
+        case 2: { if (coordinates > 120) {res = 1;} }
+        case 3: { if (coordinates < 120) {res = 1;} }
+        //default: {return 0;}
     }
-    if((y < 0) || (y >= PROJECTION_MAX_Y)) {
-        return 0;
-    }
-    if((abi_pm[x][y][0] == 0xFF) || (abi_pm[x][y][1] == 0xFF)) {
-        return 0;
-    }
-    return 1;
+    //printf("res = %d\n", res);
+    return res;
 }
 
 // xN - positive x, inner neighbour
@@ -113,12 +135,11 @@ GetNeightbours () {
     new faceX;
     new faceY;
     new cube;
-    // Get neighbours inside cube, connection between its faces
-    // and outer neighbours, connection between edges -x and -y
-    for (new i = 0, j = 0; i < 12; i+=3) {
-        // Inner
+    // Get outer neighbours, connection between edges -x and -y
+    for (new i = 0, j = 0; i < 12; i += 3) {
+        // Get number of cube on exact corrdinates
         cube = abi_pm[iNx{i}][iNy{i}][0];
-        face0 = cube * 3 + abi_pm[iNx{i    }][iNy{i   }][1];
+        face0 = cube * 3 + abi_pm[iNx{i    }][iNy{i    }][1];
         face1 = cube * 3 + abi_pm[iNx{i + 1}][iNy{i + 1}][1];
         face2 = cube * 3 + abi_pm[iNx{i + 2}][iNy{i + 2}][1];
 
@@ -163,8 +184,10 @@ PrintNeighbours(){
 }
 
 onCubeAttach() {
-    for (new face = 0; face <3 ; face++){
-        abi_CMD_FILL(face, 0 ,0 ,0);
+    for (new face = 0; face < 3 ; face++){
+        // ♪ i see the red do...face and want it to turn black ♫
+        abi_CMD_BITMAP (currFacePos, 0, 0, 0);
+        //abi_CMD_FILL (currFacePos, 0, 0, 0);
     }
     GetNeightbours();
     PrintNeighbours();
@@ -184,6 +207,7 @@ onCubeDetach() {
 GetCubeAndFace (faceNumber, &cube, &face) {
     cube = faceNumber/3;
     face = faceNumber%3;
+    //printf("cube = %d, face = %d\n", cube, face);
 }
 
 MoveTo (&posX, &posY, &spdX, &spdY, destination) {
@@ -207,6 +231,9 @@ MoveTo (&posX, &posY, &spdX, &spdY, destination) {
     if (posY >= 240) {
         posY = 239;
     }
+    // Clear previous face
+    abi_CMD_BITMAP (currFacePos, 0, 0, 0);
+    // Get new cube and face
     GetCubeAndFace (destination, currCubePos, currFacePos);
     //abi_CUBE_2_CUBE(currCubePos);
     //printf("change to cube = %d face = %d\n", currCubePos, currFacePos);
@@ -215,7 +242,7 @@ MoveTo (&posX, &posY, &spdX, &spdY, destination) {
 onCubeTick() {
     //printf("abi_cubeN = %d currCubePos = %d\n", abi_cubeN, currCubePos);
     //if (abi_cubeN == currCubePos) {
-        if (positionX >= 240) {
+        /*if (positionX >= 240) {
             MoveTo (positionX, positionY, speedX, speedY,
                     adjacencyList[currCubePos * 3 + currFacePos]{0});
         }
@@ -223,24 +250,39 @@ onCubeTick() {
             MoveTo (positionY, positionX, speedY, speedX,
                     adjacencyList[currCubePos * 3 + currFacePos]{1});
         }
-        else if (positionY <= 0) {
-            //printf("MoveTo -x\n");
-            MoveTo (positionX, positionY, speedY, speedX,
-                    adjacencyList[currCubePos * 3 + currFacePos]{2});
-        } 
-        else if (positionX <= 0) {
-            //printf("MoveTo -x\n");
-            MoveTo (positionX, positionY, speedX, speedY,
-                    adjacencyList[currCubePos * 3 + currFacePos]{3});
+        // Decreasing X we cross Y
+        else */if (positionY <= 0) {
+            new yNeighbour = adjacencyList[currCubePos * 3 + currFacePos]{2}; 
+            if (CheckFaceExit (exitsFromCube{currCubePos * 6 + 2 * currFacePos}, positionX) &&
+                CheckNeighbour (yNeighbour, positionX, 1)) {
+                //CheckNeighbour (adjacencyList[currCubePos * 3 + currFacePos]{2}, positionX)) {
+                //printf("MoveTo -x\n");
+                MoveTo (positionX, positionY, speedY, speedX, yNeighbour);
+                        //adjacencyList[currCubePos * 3 + currFacePos]{2});
+            } else {
+                speedY *= -1;
+            }
         }
-        
+        // Decreasing Y we cross X
+        else if (positionX <= 0) {
+            new xNeighbour = adjacencyList[currCubePos * 3 + currFacePos]{3}; 
+            if (CheckFaceExit (exitsFromCube{currCubePos * 6 + 2 * currFacePos + 1}, positionY) &&
+                CheckNeighbour (xNeighbour, positionY, 0)) {
+                //printf("MoveTo -y\n");
+                MoveTo (positionX, positionY, speedX, speedY, xNeighbour);
+                        //adjacencyList[currCubePos * 3 + currFacePos]{3});
+            } else {
+                speedX *= -1;
+            }
+        }
                 
-        /*if (positionX <= 1) {
+        if (positionX >= 220) {
             speedX *= -1;
         }
-        if (positionY <= 1) {
+        if (positionY >= 220) {
             speedY *= -1;
-        }*/
+        }
+
         if (abi_cubeN == currCubePos) {
             abi_CMD_BITMAP (currFacePos, 0, 0, 0);
             abi_CMD_BITMAP (currFacePos, 90, positionX, positionY);
@@ -267,7 +309,6 @@ run(const pkt[], size, const src[]) {
         case CMD_ATTACH: {
             printf("[%s] CMD_ATTACH\n", src);
             abi_attached = 1;
-            //if (size == 97) {
             abi_DeserializePositonsMatrix(pkt);
             abi_LogPositionsMatrix(); // DEBUG
 
