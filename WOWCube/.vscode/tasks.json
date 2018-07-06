@@ -4,101 +4,101 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "WOWCube Compile Pawn Logic",
+            "label": "1) WOWCube compile Pipes game logic (Pawn language)",
             "type": "shell",
-            "command": "../../Pawn/bin/pawncc pipes.pwn",
+            "command": "../../Pawn/bin/pawncc pipes.pwn -ogame",
             "options": {
                 "cwd": "./pawn"
             },
             "problemMatcher": []
         },
         {
-            "label": "WOWCube Run GUI",
+            "label": "2) WOWCube run #0-7 Cube game logic (Pawn language)",
+            "dependsOn": [
+                "WOWCube run #0",
+                "WOWCube run #1",
+                "WOWCube run #2",
+                "WOWCube run #3",
+                "WOWCube run #4",
+                "WOWCube run #5",
+                "WOWCube run #6",
+                "WOWCube run #7",
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "3) WOWCube run GUI emulator (Processing language)",
             "type": "shell",
             "command": "../Processing/processing-java.exe --sketch=../WOWCube --run",
             "problemMatcher": []
         },
         {
-            "label": "WOWCube Run Pawn Logic Cube #0-7",
-            "dependsOn": [
-                "WOWCube Run Pawn Logic Cube #0",
-                "WOWCube Run Pawn Logic Cube #1",
-                "WOWCube Run Pawn Logic Cube #2",
-                "WOWCube Run Pawn Logic Cube #3",
-                "WOWCube Run Pawn Logic Cube #4",
-                "WOWCube Run Pawn Logic Cube #5",
-                "WOWCube Run Pawn Logic Cube #6",
-                "WOWCube Run Pawn Logic Cube #7",
-            ],
-            "problemMatcher": []
-        },
-        {
-            "label": "WOWCube Run Pawn Logic Cube #0",
+            "label": "WOWCube run #0",
             "type": "shell",
-            "command": "../../Pawn/bin/pawnrun pipes.amx 0",
+            "command": "../../Pawn/bin/pawnrun game.amx 0",
             "options": {
                 "cwd": "./pawn"
             },
             "problemMatcher": []
         },
         {
-            "label": "WOWCube Run Pawn Logic Cube #1",
+            "label": "WOWCube run #1",
             "type": "shell",
-            "command": "../../Pawn/bin/pawnrun pipes.amx 1",
+            "command": "../../Pawn/bin/pawnrun game.amx 1",
             "options": {
                 "cwd": "./pawn"
             },
             "problemMatcher": []
         },
         {
-            "label": "WOWCube Run Pawn Logic Cube #2",
+            "label": "WOWCube run #2",
             "type": "shell",
-            "command": "../../Pawn/bin/pawnrun pipes.amx 2",
+            "command": "../../Pawn/bin/pawnrun game.amx 2",
             "options": {
                 "cwd": "./pawn"
             },
             "problemMatcher": []
         },
         {
-            "label": "WOWCube Run Pawn Logic Cube #3",
+            "label": "WOWCube run #3",
             "type": "shell",
-            "command": "../../Pawn/bin/pawnrun pipes.amx 3",
+            "command": "../../Pawn/bin/pawnrun game.amx 3",
             "options": {
                 "cwd": "./pawn"
             },
             "problemMatcher": []
         },
         {
-            "label": "WOWCube Run Pawn Logic Cube #4",
+            "label": "WOWCube run #4",
             "type": "shell",
-            "command": "../../Pawn/bin/pawnrun pipes.amx 4",
+            "command": "../../Pawn/bin/pawnrun game.amx 4",
             "options": {
                 "cwd": "./pawn"
             },
             "problemMatcher": []
         },
         {
-            "label": "WOWCube Run Pawn Logic Cube #5",
+            "label": "WOWCube run #5",
             "type": "shell",
-            "command": "../../Pawn/bin/pawnrun pipes.amx 5",
+            "command": "../../Pawn/bin/pawnrun game.amx 5",
             "options": {
                 "cwd": "./pawn"
             },
             "problemMatcher": []
         },
         {
-            "label": "WOWCube Run Pawn Logic Cube #6",
+            "label": "WOWCube run #6",
             "type": "shell",
-            "command": "../../Pawn/bin/pawnrun pipes.amx 6",
+            "command": "../../Pawn/bin/pawnrun game.amx 6",
             "options": {
                 "cwd": "./pawn"
             },
             "problemMatcher": []
         },
         {
-            "label": "WOWCube Run Pawn Logic Cube #7",
+            "label": "WOWCube run #7",
             "type": "shell",
-            "command": "../../Pawn/bin/pawnrun pipes.amx 7",
+            "command": "../../Pawn/bin/pawnrun game.amx 7",
             "options": {
                 "cwd": "./pawn"
             },

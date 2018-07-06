@@ -4,15 +4,16 @@ UDP udp;
 final int FSP = 260; // FACE_SIZE_PIXELS
 final int SSP = 240; // SCREEN_SIZE_PIXELS
 final int CUBES = 8;
-final int FPC = 3  ; // FACES_PER_CUBEnt FPC = 3  ; // FACES_PER_CUBE
+final int FPC = 3  ; // FACES_PER_CUBE
 
-float camRotX = 0; // in degrees!
-float camRotY = 0;
+float camRotX = -35; // in degrees!
+float camRotY = -45;
 
 int timer = 0;
 
 CCubeSet cs;
 CDebugPanel dp;
+CRotatePanel rp;
 CPawnLogic logic;
 
 enum animType
@@ -34,16 +35,16 @@ final int PAWN_PORT_BASE = 10000; // +cubeN
 
 // Each command applies to face's display, which number is next after command.
 final byte CMD_GUI_BASE    = 0;
-final byte CMD_GUI_DEBUG   = CMD_GUI_BASE +  1;
-final byte CMD_FILL        = CMD_GUI_BASE +  2; // CMD_CLEAR,faceN,R,G,B
-final byte CMD_BITMAP      = CMD_GUI_BASE +  3; // CMD_BITMAP,faceN,resID,X,Y
+final byte CMD_REDRAW      = CMD_GUI_BASE +  1; // CMD_REDRAW,faceN - copy framebuffer contents to the face specified
+final byte CMD_FILL        = CMD_GUI_BASE +  2; // CMD_FILL,R,G,B - to framebuffer, RGB565
+final byte CMD_BITMAP      = CMD_GUI_BASE +  3; // CMD_BITMAP,resID,X,Y,angle - to framebuffer, only angle=0|90|180|270 supported
 final byte CMD_PAWN_BASE   = 100;
-final byte CMD_PAWN_DEBUG  = CMD_PAWN_BASE + 1;
-final byte CMD_TICK        = CMD_PAWN_BASE + 2;
-final byte CMD_DETACH      = CMD_PAWN_BASE + 3;
-final byte CMD_ATTACH      = CMD_PAWN_BASE + 4; // CMD_ATTACH, TODO:positions matrix here
+final byte CMD_TICK        = CMD_PAWN_BASE + 1;
+final byte CMD_DETACH      = CMD_PAWN_BASE + 2;
+final byte CMD_ATTACH      = CMD_PAWN_BASE + 3; // CMD_ATTACH,positions_matrix_here
 final byte TICK_DELAY      = 100; //Tick Deley in milliseconds
 
+// LCD display object at cube's face
 class CDisplay
 {
   CFace pface; // backlink to parent Face
@@ -123,6 +124,7 @@ class CDisplay
   }
 }
 
+// Cube's (1/8 of WOWCube) one face with LCD display on it.
 class CFace
 {
   public CCube pcube; // backlink to parent Cube
@@ -195,10 +197,12 @@ class CFace
   }
 }
 
+// Cube object is 1/8 of WOWCube. It has 3 faces with LCD displays. It uses 1 framebuffer.
 class CCube
 {
   public int cubeN;
-  CFace[] f = new CFace[3];
+  public CFace[] f = new CFace[3];
+  public PGraphics framebuffer;
   
   CCube(int _cubeN)
   {
@@ -217,6 +221,7 @@ class CCube
     f[2].rotateY(-90);
     f[2].rotateX(-180);
     f[2].translate(-FSP/2,0,0);
+    framebuffer = createGraphics(SSP, SSP, P2D);
   }
   
   void draw()
@@ -262,6 +267,7 @@ class CCube
   }
 }
 
+// WOWCube object - 8 cubes, each has 3 faces with LCD displays.
 class CCubeSet
 {
   public CCube[] c;
@@ -379,23 +385,23 @@ class CCubeSet
         c[p[7]].rotateX(-animSpeed);
         if(animAngle % 90 == 0) anim_X_CCW_end();
       break;
-      
+
       case ANIM_Y_CW:
-        animAngle += animSpeed;
-        c[p[0]].rotateY(animSpeed);
-        c[p[1]].rotateY(animSpeed);
-        c[p[4]].rotateY(animSpeed);
-        c[p[5]].rotateY(animSpeed);
-        if(animAngle % 90 == 0) anim_Y_CW_end();
-      break;
-      
-      case ANIM_Y_CCW:
         animAngle -= animSpeed;
         c[p[0]].rotateY(-animSpeed);
         c[p[1]].rotateY(-animSpeed);
         c[p[4]].rotateY(-animSpeed);
         c[p[5]].rotateY(-animSpeed);
         if(animAngle % 90 == 0) anim_Y_CCW_end();
+      break;
+
+      case ANIM_Y_CCW:
+        animAngle += animSpeed;
+        c[p[0]].rotateY(animSpeed);
+        c[p[1]].rotateY(animSpeed);
+        c[p[4]].rotateY(animSpeed);
+        c[p[5]].rotateY(animSpeed);
+        if(animAngle % 90 == 0) anim_Y_CW_end();
       break;
       
       case ANIM_Z_CW:
@@ -588,6 +594,7 @@ class CCubeSet
   }
 }
 
+// "Cross" projection of the cube at top-left
 class CDebugPanel
 {
   final float scale = 0.25; // scale of model
@@ -636,431 +643,122 @@ class CDebugPanel
   }
 }
 
-class CGamePipesLogic
+class CRotatePanel
 {
-  private boolean _drawGameFieldNumbers = false;
-  
-  private PFont fontForWinText = createFont("Courier New Bold", 60);
-  
-  final int PIPES_BASE=0;
-  final int STEAM_BASE=16;
-  final int PIPES_COUNT=16;
-  final int STEAM_COUNT=36;
+  final float PANEL_SCALE = 0.5;
+  final int SHAPE_SIZE = 256;
+  final int X_OFS = 800-SHAPE_SIZE-10;
+  final int Y_OFS = 10;
+  private PShape s = new PShape();
+  private PGraphics g;
+  private PImage img_base = new PImage();
+  private PImage img_axis_x_ccw = new PImage();
+  private PImage img_axis_x_ccw_hover = new PImage();
+  private PImage img_axis_x_cw = new PImage();
+  private PImage img_axis_x_cw_hover = new PImage();
+  private PImage img_axis_y_ccw = new PImage();
+  private PImage img_axis_y_ccw_hover = new PImage();
+  private PImage img_axis_y_cw = new PImage();
+  private PImage img_axis_y_cw_hover = new PImage();
+  private PImage img_axis_z_ccw = new PImage();
+  private PImage img_axis_z_ccw_hover = new PImage();
+  private PImage img_axis_z_cw = new PImage();
+  private PImage img_axis_z_cw_hover = new PImage();
 
-  private int steam_frame=0; // see tick()
-  private int solved_angle=0; // see tick()
-  
-  PImage res[] = new PImage[PIPES_COUNT+STEAM_COUNT]; // resources
-  
-  private String levelData[][] = new String[6][8];
-  private int gf[/*cubeID*/][/*faceID*/] = new int[CUBES][FPC]; // Game Field
-  
-  CGamePipesLogic()
+  CRotatePanel()
   {
-    // Load resources
-    for(int i=PIPES_BASE; i<PIPES_COUNT; i++) res[i] = loadImage("pipes/"+binary(i,4)+".png");
-    for(int i=STEAM_BASE; i<(STEAM_BASE+STEAM_COUNT); i++) res[i] = loadImage("steam/"+(i-STEAM_BASE+1)+".png");
-    
-    // Load level data
-    loadLevel("level.txt");
-    
-    // Fill game field (which figure will bound to which cube's face)
-    for(int x=0; x<8; x++)
-    {
-      for(int y=0; y<6; y++)
-      {
-        int cubeID = cs.pm[x][y][0];
-        int faceID = cs.pm[x][y][1];
-        if((cubeID != -1) && (faceID != -1))
-        {
-          gf[cubeID][faceID] = rotateFigureBitwise(unbinary(levelData[5-y][x]), cs.pam[x][y]);
-        }
-      }
-    }
+    img_base = loadImage("forGUI/axis_base.png");
+    img_axis_x_ccw = loadImage("forGUI/axis_x-ccw.png");
+    img_axis_x_ccw_hover = loadImage("forGUI/axis_x-ccw_hover.png");
+    img_axis_x_cw = loadImage("forGUI/axis_x-cw.png");
+    img_axis_x_cw_hover = loadImage("forGUI/axis_x-cw_hover.png");
+    img_axis_y_ccw = loadImage("forGUI/axis_y-ccw.png");
+    img_axis_y_ccw_hover = loadImage("forGUI/axis_y-ccw_hover.png");
+    img_axis_y_cw = loadImage("forGUI/axis_y-cw.png");
+    img_axis_y_cw_hover = loadImage("forGUI/axis_y-cw_hover.png");
+    img_axis_z_ccw = loadImage("forGUI/axis_z-ccw.png");
+    img_axis_z_ccw_hover = loadImage("forGUI/axis_z-ccw_hover.png");
+    img_axis_z_cw = loadImage("forGUI/axis_z-cw.png");
+    img_axis_z_cw_hover = loadImage("forGUI/axis_z-cw_hover.png");
+    g = createGraphics(SHAPE_SIZE,SHAPE_SIZE+10,P2D);
+    s = createShape();
+    s.beginShape(QUADS);
+    s.translate(X_OFS,Y_OFS);
+    s.noStroke();
+    s.vertex(0, 0, 0, 0, 0);
+    s.vertex(SHAPE_SIZE, 0, 0, 1, 0);
+    s.vertex(SHAPE_SIZE, SHAPE_SIZE, 0, 1, 1);
+    s.vertex(0, SHAPE_SIZE, 0, 0, 1);
+    s.endShape();
   }
-  
-  void loadLevel(String filename)
-  {
-    String row[] = loadStrings(filename);
-    for(int x=0; x<row.length; x++)
-    {
-      String col[] = row[x].split(",");
-      for(int y=0; y<col.length; y++)
-      {
-        levelData[x][y]=col[y]; 
-      }
-    }
-  }
-  
-  void onCsDetach() // cubeset detached (rotate anim started) 
-  {
-    steam_frame = 5; // play 5-8, then nothing until attached
-  }
-  
-  void onCsAttach() // cubeset attached (rotate anim ends)
-  {
-    steam_frame = 0; // play 0-5, then play 3-5 in a cycle
-  }
-  
-  void tick() // on timer
-  {
-    steam_frame++;
-    if(steam_frame==5) steam_frame=3; // cycle if attached
-    
-    solved_angle++;
-    if(solved_angle>=360) solved_angle=0; // for "SOLVED" when win
-  }
-  
+
   void draw()
   {
-    for(int x=0; x<8; x++)
-    {
-      for(int y=0; y<6; y++)
-      {
-        int cubeID = cs.pm[x][y][0];
-        int faceID = cs.pm[x][y][1];
-        
-        if(cubeID != -1)
-        {
-          int resID = gf[cubeID][faceID];
-          PGraphics g = cs.c[cubeID].f[faceID].d.g;
-          g.beginDraw();
-            g.image(res[resID],0,0);
-          g.endDraw();
-        }
-      }
-    }
-    
-    for(int x=0; x<8; x++)
-    {
-      for(int y=0; y<6; y++)
-      {
-        drawConnectorsLogic(x,y);
-      }
-    }
-
-    boolean steamDrawn = false;
-
-    for(int x=0; x<8; x++)
-    {
-      for(int y=0; y<6; y++)
-      {
-        if(steamDrawn == false)
-        {
-          steamDrawn = drawSteamLogic(x,y); // check if at least 1 steam drawn
-        }
-        else
-        {
-          drawSteamLogic(x,y); // at least 1 steam is drawn previously - level not solved yet...
-        }
-      }
-    }
-    
-    if(steamDrawn == false)
-    {
-      // !!! WIN !!!
-      for(int x=0; x<8; x++)
-      {
-        for(int y=0; y<6; y++)
-        {
-          int cubeID = cs.pm[x][y][0];
-          int faceID = cs.pm[x][y][1];
-          
-          if(cubeID != -1)
-          {
-            PGraphics g = cs.c[cubeID].f[faceID].d.g;
-            g.beginDraw();
-              g.pushMatrix();
-                g.rectMode(CENTER);
-                g.translate(SSP/2,SSP/2);
-                g.rotate(radians(solved_angle));
-                g.textFont(fontForWinText);
-                g.textAlign(CENTER, CENTER);
-                g.fill(255,255,255,50);
-                g.text("SOLVED",0,0);
-                g.rectMode(CORNER);
-              g.popMatrix();
-            g.endDraw();
-          }
-        }
-      }
-    }
-    
-    if(_drawGameFieldNumbers)
-    {
-      for(int x=0; x<8; x++)
-      {
-        for(int y=0; y<6; y++)
-        {
-          int cubeID = cs.pm[x][y][0];
-          int faceID = cs.pm[x][y][1];
-          
-          if(cubeID != -1)
-          {
-            int figure = rotateFigureBitwise(gf[cubeID][faceID], -cs.pam[x][y]);
-            
-            int meTop = ((figure >> 3) & 0x1);
-            int meRight = ((figure >> 2) & 0x1);
-            int meBottom = ((figure >> 1) & 0x1);
-            int meLeft = ((figure >> 0) & 0x1);
-            
-            PGraphics g = cs.c[cubeID].f[faceID].d.g;
-            // draw array indexes
-            g.beginDraw();
-              g.text("["+meTop+","+meRight+","+meBottom+","+meLeft+"]",100,100);
-            g.endDraw();
-          }
-        }
-      }
-    }
-    
-    // DEBUG - draw red dot
-    PGraphics g = cs.c[cs.pm[2][2][0]].f[cs.pm[2][2][1]].d.g;
     g.beginDraw();
-      g.fill(255,0,0);
-      g.ellipse(0,0,50,50);
-    g.endDraw();
-    g = cs.c[cs.pm[2][3][0]].f[cs.pm[2][3][1]].d.g;
-    g.beginDraw();
-      g.fill(255,0,0);
-      g.ellipse(0,0,50,50);
-    g.endDraw();
-    g = cs.c[cs.pm[3][3][0]].f[cs.pm[3][3][1]].d.g;
-    g.beginDraw();
-      g.fill(255,0,0);
-      g.ellipse(0,0,50,50);
-    g.endDraw();
-    g = cs.c[cs.pm[3][2][0]].f[cs.pm[3][2][1]].d.g;
-    g.beginDraw();
-      g.fill(255,0,0);
-      g.ellipse(0,0,50,50);
-    g.endDraw();
-    // END DEBUG
-  }
-  
-  void drawConnectorsLogic(int x, int y)
-  {
-    // check boundaries conditions
-    if(isFace(x, y))
-    {
-      if((x==0 || !isFace(x-1,y)) && isLeft(x,y)) drawConnector(x,y,unbinary("0001"));
-      if((y==0 || !isFace(x,y-1)) && isBottom(x,y)) drawConnector(x,y,unbinary("0010"));
-    }
-    
-    if(isFace(x, y) && isFace(x+1, y)) // planar lookup right
-    {
-      if(isRight(x,y) && isLeft(x+1,y))
+      g.image(img_base,0,0,img_base.width*PANEL_SCALE,img_base.height*PANEL_SCALE);
+      // X CCW
+      if((mouseX > X_OFS+128) && (mouseX < X_OFS+128*2) && (mouseY > Y_OFS+132+66) && (mouseY < Y_OFS+132*2))
       {
-        drawConnector(x,y,unbinary("0100"));
-        drawConnector(x+1,y,unbinary("0001"));
+        g.image(img_axis_x_ccw_hover,128,132+66,img_axis_x_ccw_hover.width*PANEL_SCALE,img_axis_x_ccw_hover.height*PANEL_SCALE);
+        if(mousePressed) cs.anim_X_CCW_begin();
       }
-    }
-    else if(isFace(x, y))
-    {
-      if(isRight(x,y)) drawConnector(x,y,unbinary("0100"));
-    }
-    
-    if(isFace(x, y) && isFace(x, y+1)) // planar lookup top
-    {
-      if(isTop(x,y) && isBottom(x,y+1))
+      else
       {
-        drawConnector(x,y,unbinary("1000"));
-        drawConnector(x,y+1,unbinary("0010"));
+        g.image(img_axis_x_ccw,128,132+66,img_axis_x_ccw.width*PANEL_SCALE,img_axis_x_ccw.height*PANEL_SCALE);
       }
-    }
-    else if(isFace(x, y))
-    {
-      if(isTop(x,y)) drawConnector(x,y,unbinary("1000")); 
-    }
-  }
-  
-  void drawConnector(int x, int y, int _resID)
-  {
-    int resID = rotateFigureBitwise(_resID, cs.pam[x][y]);
-    int cubeID = cs.pm[x][y][0];
-    int faceID = cs.pm[x][y][1];
-    PGraphics g = cs.c[cubeID].f[faceID].d.g;
-    
-    g.beginDraw();
-      switch(resID)
+      // X CW
+      if((mouseX > X_OFS+128) && (mouseX < X_OFS+128*2) && (mouseY > Y_OFS+132) && (mouseY < Y_OFS+132+66))
       {
-        case 8: g.image(res[resID], SSP/2-res[resID].width/2, 0); break; // top 1000
-        case 4: g.image(res[resID], SSP-res[resID].width, SSP/2-res[resID].height/2); break; // right 0100
-        case 2: g.image(res[resID], SSP/2-res[resID].width/2, SSP-res[resID].height); break; // bottom 0010
-        case 1: g.image(res[resID], 0, SSP/2-res[resID].height/2); break; // left 0001
+        g.image(img_axis_x_cw_hover,128,132,img_axis_x_cw_hover.width*PANEL_SCALE,img_axis_x_cw_hover.height*PANEL_SCALE);
+        if(mousePressed) cs.anim_X_CW_begin();
+      }
+      else
+      {
+        g.image(img_axis_x_cw,128,132,img_axis_x_cw.width*PANEL_SCALE,img_axis_x_cw.height*PANEL_SCALE);
+      }
+      // Y CCW
+      if((mouseX > X_OFS+128) && (mouseX < X_OFS+128*2) && (mouseY > Y_OFS) && (mouseY < Y_OFS+95))
+      {
+        g.image(img_axis_y_ccw_hover,128,0,img_axis_y_ccw_hover.width*PANEL_SCALE,img_axis_y_ccw_hover.height*PANEL_SCALE);
+        if(mousePressed) cs.anim_Y_CCW_begin();
+      }
+      else
+      {
+        g.image(img_axis_y_ccw,128,0,img_axis_y_ccw.width*PANEL_SCALE,img_axis_y_ccw.height*PANEL_SCALE);
+      }
+      // Y CW
+      if((mouseX > X_OFS) && (mouseX < X_OFS+128) && (mouseY > Y_OFS) && (mouseY < Y_OFS+95))
+      {
+        g.image(img_axis_y_cw_hover,0,0,img_axis_y_cw_hover.width*PANEL_SCALE,img_axis_y_cw_hover.height*PANEL_SCALE);
+        if(mousePressed) cs.anim_Y_CW_begin();
+      }
+      else
+      {
+        g.image(img_axis_y_cw,0,0,img_axis_y_cw.width*PANEL_SCALE,img_axis_y_cw.height*PANEL_SCALE);
+      }
+      // Z CCW
+      if((mouseX > X_OFS) && (mouseX < X_OFS+128) && (mouseY > Y_OFS+132) && (mouseY < Y_OFS+132+66))
+      {
+        g.image(img_axis_z_ccw_hover,0,132,img_axis_z_ccw_hover.width*PANEL_SCALE,img_axis_z_ccw_hover.height*PANEL_SCALE);
+        if(mousePressed) cs.anim_Z_CCW_begin();
+      }
+      else
+      {
+        g.image(img_axis_z_ccw,0,132,img_axis_z_ccw.width*PANEL_SCALE,img_axis_z_ccw.height*PANEL_SCALE);
+      }
+      // Z CW
+      if((mouseX > X_OFS) && (mouseX < X_OFS+128) && (mouseY > Y_OFS+132+66) && (mouseY < Y_OFS+132+132))
+      {
+        g.image(img_axis_z_cw_hover,0,132+66,img_axis_z_cw_hover.width*PANEL_SCALE,img_axis_z_cw_hover.height*PANEL_SCALE);
+        if(mousePressed) cs.anim_Z_CW_begin();
+      }
+      else
+      {
+        g.image(img_axis_z_cw,0,132+66,img_axis_z_cw.width*PANEL_SCALE,img_axis_z_cw.height*PANEL_SCALE);
       }
     g.endDraw();
-  }
-  
-  boolean drawSteamLogic(int x, int y)
-  {
-    boolean steamDrawn = false;
-    
-    if(isFace(x,y) && isFace(x,y+1)) // planar lookup top
-    {
-      if(isTop(x,y) && !isBottom(x,y+1))
-      {
-        drawSteam(x,y+1,unbinary("0010"));
-        steamDrawn = true;
-      }
-    }
-    
-    if(isFace(x,y) && isFace(x+1,y)) // planar lookup right
-    {
-      if(isRight(x,y) && !isLeft(x+1,y))
-      {
-        drawSteam(x+1,y,unbinary("0001"));
-        steamDrawn = true;
-      }
-    }
-    
-    if(isFace(x,y) && isFace(x,y-1)) // planar lookup bottom
-    {
-      if(isBottom(x,y) && !isTop(x,y-1))
-      {
-        drawSteam(x,y-1,unbinary("1000"));
-        steamDrawn = true;
-      }
-    }
-    
-    if(isFace(x,y) && isFace(x-1,y)) // planar lookup left
-    {
-      if(isLeft(x,y) && !isRight(x-1,y))
-      {
-        drawSteam(x-1,y,unbinary("0100"));
-        steamDrawn = true;
-      }
-    }
-    
-    return steamDrawn;
-  }
-  
-  void drawSteam(int x, int y, int _pos)
-  {
-    if(steam_frame < 0 || steam_frame > 8) return;
-    int resID = STEAM_BASE+steam_frame;
-    int pos = rotateFigureBitwise(_pos, cs.pam[x][y]);
-    int cubeID = cs.pm[x][y][0];
-    int faceID = cs.pm[x][y][1];
-    PGraphics g = cs.c[cubeID].f[faceID].d.g;
-   
-    g.beginDraw();
-      switch(pos)
-      {
-        case 8:
-          g.pushMatrix();
-            g.imageMode(CENTER);
-              g.translate(SSP/2, SSP/2-res[resID].height/2);
-              g.rotate(PI);
-              g.blendMode(LIGHTEST);
-                g.image(res[resID],0,0);
-              g.blendMode(BLEND);
-            g.imageMode(CORNER);
-          g.popMatrix();
-        break; // top 1000
-        
-        case 4:
-          g.pushMatrix();
-            g.imageMode(CENTER);
-              g.translate(SSP/2-res[resID].width/2, SSP/2);
-              g.rotate(-PI/2);
-              g.blendMode(LIGHTEST);
-                g.image(res[resID],0,0);
-              g.blendMode(BLEND);
-            g.imageMode(CORNER);
-          g.popMatrix();
-        break; // right 0100
-        
-        case 2:
-          g.pushMatrix();
-            g.imageMode(CENTER);
-              g.translate(SSP/2, SSP/2-res[resID].height/2);
-              //g.rotate(0);
-              g.blendMode(LIGHTEST);
-                g.image(res[resID],0,0);
-              g.blendMode(BLEND);
-            g.imageMode(CORNER);
-          g.popMatrix();
-        break; // bottom 0010
-        
-        case 1:
-          g.pushMatrix();
-            g.imageMode(CENTER);
-              g.translate(SSP/2-res[resID].width/2, SSP/2);
-              g.rotate(PI/2);
-              g.blendMode(LIGHTEST);
-                g.image(res[resID],0,0);
-              g.blendMode(BLEND);
-            g.imageMode(CORNER);
-          g.popMatrix();
-        break; // left 0001
-      }
-    g.endDraw();
-  }
-  
-  // used for face rotation compensation
-  int rotateFigureBitwise(int figure, int angle)
-  {
-    int r = figure;
-    
-    switch(angle)
-    {
-      case  -90: r = ((figure >> 1) & 0x7) | ((figure << 3) & 0x8); break; // 90
-      case -180: r = ((figure >> 2) & 0x3) | ((figure << 2) & 0xC); break; // 180
-      case -270: r = ((figure >> 3) & 0x1) | ((figure << 1) & 0xE); break; // 270
-      case   90: r = ((figure << 1) & 0xE) | ((figure >> 3) & 0x1); break; // -90
-      case  180: r = ((figure << 2) & 0xC) | ((figure >> 2) & 0x3); break; // -180
-      case  270: r = ((figure << 3) & 0x8) | ((figure >> 1) & 0x7); break; // -270
-    }
-    
-    return r;
-  }
-  
-  boolean isFace(int x, int y)
-  {
-    try
-    {
-      int cubeID = cs.pm[x][y][0];
-      int faceID = cs.pm[x][y][1];
-      if((cubeID == -1) || (faceID == -1)) return false;
-      return true;
-    }
-    catch(Exception e)
-    {
-      return false;
-    }
-  }
-  
-  boolean isTop(int x, int y)
-  {
-    int cubeID = cs.pm[x][y][0];
-    int faceID = cs.pm[x][y][1];
-    int figure = rotateFigureBitwise(gf[cubeID][faceID], -cs.pam[x][y]);
-    return boolean((figure >> 3) & 0x1);
-  }
-  
-  boolean isRight(int x, int y)
-  {
-    int cubeID = cs.pm[x][y][0];
-    int faceID = cs.pm[x][y][1];
-    int figure = rotateFigureBitwise(gf[cubeID][faceID], -cs.pam[x][y]);
-    return boolean((figure >> 2) & 0x1);
-  }
-
-  boolean isBottom(int x, int y)
-  {
-    int cubeID = cs.pm[x][y][0];
-    int faceID = cs.pm[x][y][1];
-    int figure = rotateFigureBitwise(gf[cubeID][faceID], -cs.pam[x][y]);
-    return boolean((figure >> 1) & 0x1);
-  }
-
-  boolean isLeft(int x, int y)
-  {
-    int cubeID = cs.pm[x][y][0];
-    int faceID = cs.pm[x][y][1];
-    int figure = rotateFigureBitwise(gf[cubeID][faceID], -cs.pam[x][y]);
-    return boolean((figure >> 0) & 0x1);
+    s.setTexture(g);
+    shape(s);
   }
 }
 
@@ -1079,21 +777,15 @@ class CPawnCmd
 
 class CPawnLogic // interface to/from Pawn
 {
-  final private int PIPES_BASE=0;
-  final private int STEAM_BASE=16;
-  final private int PIPES_COUNT=16;
-  final private int STEAM_COUNT=36;
- 
-  //private PImage res[] = new PImage[PIPES_COUNT+STEAM_COUNT]; // resources
-  private PImage res[];
+  private PImage res[]; // resources are loaded in "by name" order from Resources folder for all games
   private ArrayList<CPawnCmd> pawn_cmd_queue = new ArrayList<CPawnCmd>(); 
   
   CPawnLogic()
   {
-    //Load all files for "Resources"
+    // Load all files for "Resources"
     int count_files =0;
     ArrayList <String> files = new ArrayList<String>();
-    File f = new File("..//WoWCube//Resources");
+    File f = new File("../WOWCube/Resources");
     for (File item : f.listFiles())
       if (!item.isDirectory())
         files.add(item.getName());
@@ -1101,9 +793,6 @@ class CPawnLogic // interface to/from Pawn
     res = new PImage[count_files];
     for(int i=0;i<count_files;i++)
       res[i] = loadImage("Resources/"+files.get(i));
-    // Load resources
-    //for(int i=PIPES_BASE; i<PIPES_COUNT; i++) res[i] = loadImage("pipes/"+binary(i,4)+".png");
-    //for(int i=STEAM_BASE; i<(STEAM_BASE+STEAM_COUNT); i++) res[i] = loadImage("steam/"+(i-STEAM_BASE+1)+".png");
   }
   
   void draw()
@@ -1116,17 +805,26 @@ class CPawnLogic // interface to/from Pawn
       {
         switch(c.pkt[0])
         {
-          case CMD_GUI_DEBUG:
+          case CMD_REDRAW:
+            int faceN = c.pkt[1];
+            println("CMD_REDRAW: FRAMEBUFFER["+c.cubeN+"] --> cubeN="+c.cubeN+" faceN="+faceN);
+            PGraphics src = cs.c[c.cubeN].framebuffer;
+            PGraphics dst = cs.c[c.cubeN].f[faceN].d.g;
+            src.loadPixels();
+            dst.loadPixels();
+            dst.beginDraw();
+            arrayCopy(src.pixels, dst.pixels);
+            dst.updatePixels();
+            dst.endDraw();
           break;
           
           case CMD_FILL:
           {
-            int faceN = c.pkt[1];
-            int R = unhex(hex(c.pkt[3])+hex(c.pkt[2]));
-            int G = unhex(hex(c.pkt[5])+hex(c.pkt[4]));
-            int B = unhex(hex(c.pkt[7])+hex(c.pkt[6]));
-            println("CMD_FILL: cubeN="+c.cubeN+" faceN="+faceN+" R="+R+" G="+G+" B="+B);
-            PGraphics g = cs.c[c.cubeN].f[faceN].d.g;
+            int R = unhex(hex(c.pkt[1]));
+            int G = unhex(hex(c.pkt[2]));
+            int B = unhex(hex(c.pkt[3]));
+            println("CMD_FILL: R="+R+" G="+G+" B="+B+" --> FRAMEBUFFER["+c.cubeN+"]");
+            PGraphics g = cs.c[c.cubeN].framebuffer;
             g.beginDraw();
               g.background(R,G,B);
             g.endDraw();
@@ -1135,12 +833,12 @@ class CPawnLogic // interface to/from Pawn
           
           case CMD_BITMAP:
           {
-            int faceN = c.pkt[1];
-            int resID = unhex(hex(c.pkt[3])+hex(c.pkt[2]));
-            int x = unhex(hex(c.pkt[5])+hex(c.pkt[4]));
-            int y = unhex(hex(c.pkt[7])+hex(c.pkt[6]));
-            println("CMD_BITMAP: cubeN="+c.cubeN+" faceN="+faceN+" resID="+resID+" x="+x+" y="+y);
-            PGraphics g = cs.c[c.cubeN].f[faceN].d.g;
+            int resID = unhex(hex(c.pkt[2])+hex(c.pkt[1]));
+            int x = unhex(hex(c.pkt[4])+hex(c.pkt[3]));
+            int y = unhex(hex(c.pkt[6])+hex(c.pkt[5]));
+            int angle = unhex(hex(c.pkt[8])+hex(c.pkt[7]));
+            println("CMD_BITMAP: resID="+resID+" x="+x+" y="+y+" angle="+angle+" --> FRAMEBUFFER["+c.cubeN+"]");
+            PGraphics g = cs.c[c.cubeN].framebuffer;
             g.beginDraw();
               g.image(res[resID],x,y);
             g.endDraw();
@@ -1196,11 +894,11 @@ class CPawnLogic // interface to/from Pawn
 
 void setup()
 {
-  size(700, 700, P3D); // can use only numbers, not constants here :(
+  size(800, 700, P3D); // can use only numbers, not constants here :(
   textureMode(NORMAL);
   cs = new CCubeSet();
-  //cs.printPositionMatrix();
   dp = new CDebugPanel();
+  rp = new CRotatePanel();
   logic = new CPawnLogic();
   udp = new UDP(this, GUI_PORT);
   udp.listen(true);
@@ -1233,6 +931,7 @@ void draw()
   popMatrix();
   
   dp.draw();
+  rp.draw();
 }
 
 void mouseDragged()
@@ -1248,8 +947,8 @@ void keyPressed()
   {
     if(key == 'w') { cs.anim_X_CW_begin(); }
     if(key == 's') { cs.anim_X_CCW_begin(); }
-    if(key == 'q') { cs.anim_Y_CW_begin(); }
-    if(key == 'e') { cs.anim_Y_CCW_begin(); }
+    if(key == 'e') { cs.anim_Y_CW_begin(); }
+    if(key == 'q') { cs.anim_Y_CCW_begin(); }
     if(key == 'd') { cs.anim_Z_CW_begin(); }
     if(key == 'a') { cs.anim_Z_CCW_begin(); }
   }
