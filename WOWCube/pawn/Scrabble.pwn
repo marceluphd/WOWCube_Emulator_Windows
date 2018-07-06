@@ -1,3 +1,4 @@
+#define CUBIOS_EMULATOR
 #include "cubios_abi.pwn"
 
 /*
@@ -23,18 +24,18 @@ new level [PROJECTION_MAX_X][PROJECTION_MAX_Y] = [
     [ -1, -1, 23, 13, -1, -1],
     [ -1, -1, 23, 23, -1, -1]
 ];
-
+*/
 // second
 new level [PROJECTION_MAX_X][PROJECTION_MAX_Y] = [
-    [ -1, -1, 01, 13, -1, -1],
-    [ -1, -1, 23, 00, -1, -1],
-    [ 18, 23, 23, 01, 13, 14],
-    [ 04, 00, 13, 00, 00, 23],
-    [ -1, -1, 20, 23, -1, -1],
-    [ -1, -1, 13, 14, -1, -1],
-    [ -1, -1, 03, 23, -1, -1],
-    [ -1, -1, 23, 23, -1, -1]
-];*/
+    [ -1, -1, 15, 08, -1, -1],
+    [ -1, -1, 14, 00, -1, -1],
+    [ 14, 11, 24, 21, 14, 18],
+    [ 06, 17, 22, 21, 20, 04],
+    [ -1, -1, 02, 01, -1, -1],
+    [ -1, -1, 08, 14, -1, -1],
+    [ -1, -1, 00, 22, -1, -1],
+    [ -1, -1, 04, 00, -1, -1]
+];/*
 // ideal level
 new level [PROJECTION_MAX_X][PROJECTION_MAX_Y] = [
     [ -1, -1, 15, 08, -1, -1],
@@ -46,7 +47,7 @@ new level [PROJECTION_MAX_X][PROJECTION_MAX_Y] = [
     [ -1, -1, 01, 21, -1, -1],
     [ -1, -1, 04, 00, -1, -1]
 ];
-
+*/
 //qwasw
 public score = 0;
 new color = 78;
@@ -63,11 +64,6 @@ new faceColors []{} = [{0,0,0,0}, {0,0,0,0}, {0,0,0,0},
                       {0,0,0,0}, {0,0,0,0}, {0,0,0,0},
                       {0,0,0,0}, {0,0,0,0}, {0,0,0,0}];
                        
-randomInterval(min, max) {    
-    new rand = random(max - min ) + min;  
-    return rand;
-}
-
 CalculateScore (scoreWord[]) {
     //for (new i = 0; i < wordsIndex; i++) {
     score += strlen(scoreWord);
@@ -132,7 +128,6 @@ ConcatinateArrays(arr1{}, arr2{}){
         doubleWord{i} = arr1{i};
         doubleWord{i+8} = arr2{i};
     }
-    //doubleWord{16} = EOS;
     return doubleWord;
 }
 
@@ -142,59 +137,52 @@ ReverseWord(word{}) {
         reverse{i} = word{15-i};
         //printf ("word = %s, reverse = %s\n", word{15-i}, reverse{i});
     }
-    //reverse{16} = word{16};
     return reverse;
+}
+
+GetReverseIndex (index, length) {
+    new normIndex = (8 - length) - index;
+    if (normIndex < 0){
+        normIndex += 8;
+    }
+    return normIndex
 }
 
 FindWordInDictionary (coords[][]) {
     new word{9};
     word = GetWord(coords);
-    printf ("%s\n", word);
+    //printf ("%s\n", word);
     // If word is separated, i.e. we need word "ability"
-    // input string is "litywabi", we add word again and get "litywabilitywabi"
-                                                            //ibawytilibawytil
+    // input string is "litywabi", we add word again and get "litywabi litywabi"
     // and search whole word "ability" in it
     new doubleWord{17};
     new reverseWord {17};
     doubleWord = ConcatinateArrays(word, word);
     reverseWord = ReverseWord(doubleWord);
-    printf ("doubleword = %s, reverseword = %s\n", doubleWord, reverseWord);
-
-    /*for (new i = 0, smalWords = 0; allWords[i][0] && (smalWords != 2); i++) {
-        new beginIndex = strfind(doubleWord, allWords[i][0]);
-        if (beginIndex > 0) {
-            new curWordLength = strlen(allWords[i][0]);
-            printf ("word match: %s it's length: %d\n", allWords[i][0], curWordLength);
-            smalWords++;
-            if (curWordLength > 4) {
-                RememberWord (GetWordIndexes(beginIndex, curWordLength), coords);
-                break;
-            }
-            RememberWord (GetWordIndexes(beginIndex, curWordLength), coords);
-        }
-    }*/
+    //printf ("doubleword = %s, reverseword = %s\n", doubleWord, reverseWord);
     new currWord{8};
     new beginIndex;
-    for (new i = 0, smallWords = 0; i < 4/*i < sizeof(levelWords[i][0]) && (smallWords != 2)*/; i++) {
+    new isReverse = 0;
+    for (new i = 0, smallWords = 0; i < sizeof(levelWords)/* && (smallWords != 2)*/; i++) {
         strpack(currWord, levelWords[i][0]);
         //printf("currWord = %s levelWords[i][0] = %s\n",currWord, levelWords[i][0]);
-        new index = strfind(doubleWord, currWord);
-        beginIndex = index;
-        if (index < 0){
-            index = strfind(reverseWord, currWord);
-            beginIndex = index + curWordLength - 8;
+        beginIndex = strfind(doubleWord, currWord);
+        if (beginIndex < 0){
+            beginIndex = strfind(reverseWord, currWord);
+            isReverse = 1;
         }
-        //printf("%d\n",beginIndex);
-        if (index >= 0) {
+        //printf("beginIndex = %d\n",beginIndex);
+        if (beginIndex >= 0) {
             new curWordLength = strlen(currWord);
             //printf ("word match: %s it's length: %d\n", currWord, curWordLength);
             smallWords++;
-            if (curWordLength > 4) {
-                RememberWord (GetWordIndexes(beginIndex, curWordLength), coords);
-                break;
+            if (isReverse) {
+                beginIndex = GetReverseIndex(beginIndex, curWordLength);
             }
+            //printf("beginIndex inside = %d\n",beginIndex);
             RememberWord (GetWordIndexes(beginIndex, curWordLength), coords);
         }
+        isReverse = 0;
     }
     //printf ("End of search\n");
 }
@@ -267,8 +255,6 @@ CheckRotationAxis() {
     Check_X_Axis();
     Check_Y_Axis();
     Check_Z_Axis();
-
-    //LightupLetters();
 }
 
 GetGameField() {
@@ -277,7 +263,6 @@ GetGameField() {
             new cubeID = abi_initial_pm[x][y][0];
             new faceID = abi_initial_pm[x][y][1];
             if (cubeID != -1) {
-                //gameField[cubeID][faceID] = level[x][y];
                 gameField{cubeID * 3 + faceID} = level[x][y];
             }
         }
@@ -312,50 +297,48 @@ ReadDictionary(){
     fclose (dictionary);
 }
 */
+//sewaqd
+//qaesd
 onCubeAttach() {
     //printf("Cube attached\n");
     new faceN = 0;
     new colorN = 0;
-    //new x = 0; // projection X
-    //new y = 0; // projection Y
-    //new a = 0; // projection Angle (face rotated at)
-    new lettersResIDOriginal[CUBES_MAX][FACES_PER_CUBE];
-
+    new lettersResIDOriginal[CUBES_MAX][FACES_PER_CUBE];    
     for (faceN = 0; faceN < FACES_PER_CUBE; faceN++) {
         // calculate faces and rotated bitmaps positions
-        //abi_InitialFacePositionAtProjection(abi_cubeN, faceN, x, y, a);
-        //lettersResIDOriginal[abi_cubeN][faceN] = gameField[abi_cubeN][faceN];
-        new number = abi_cubeN * 3 + faceN;
-        abi_CMD_BITMAP(faceN, 0, 0, 0);
-        for (colorN = 0; colorN < 4; colorN++) {
+        new faceIndex = abi_cubeN * 3 + faceN;
+        new colors = strlen(faceColors[faceIndex]);
+        new posX = 0, posY = 0;
+        abi_CMD_BITMAP(0, 0, 0, 0);
+        for (colorN = 0; colorN < colors; colorN++) {
             //printf ("number - %d colorN - %d\n",number, colorN);
-            new curColor = faceColors[number]{colorN};
+            new curColor = faceColors[faceIndex]{colorN};
+            //new positions{} = {0,25,50,0};
             //printf ("%d\n",color);
-            if (curColor != 0) {
-                if (colorN > 0) {
-                    curColor += 6;
+            //if (curColor != 0) {
+            if (colorN > 0) {
+                curColor += 6;
+            }
+            if (colors > 2) {
+                if (colorN == 1) {
+                    //printf ("colors = %d, faceIndex = %d\n",colors, faceIndex);
+                    posX = 25;
+                    posY = 25;
                 }
-                //if (colorN > 1)
-                abi_CMD_BITMAP(faceN, curColor, 0, 0);
-                // Reset color
-                faceColors[number]{colorN} = 0;
+                if (colorN == 2) {
+                    //printf ("colors = %d, faceIndex = %d\n",colors, faceIndex);
+                    posX = 0;
+                    posY = 0;
+                }
             }
-            else {
-                break;
-            }
+            //printf("curColor = %d\n",curColor);
+            abi_CMD_BITMAP(curColor, posX, posY, 0);
+            // Reset color
+            faceColors[faceIndex]{colorN} = 0;
         }
-        /*if (faces2Change{number} == 1) {
-            //abi_CMD_FILL(faceN, 34,177, 76);
-        } else {
-            
-        }*/
-        //lettersResIDOriginal[abi_cubeN][faceN] = letter;
-        lettersResIDOriginal[abi_cubeN][faceN] = gameField{number} + 52;
-    }
-
-    // Draw a part of level on this cube's face 0-2
-    for (faceN = 0; faceN < FACES_PER_CUBE; faceN++) {
-        abi_CMD_BITMAP (faceN, lettersResIDOriginal[abi_cubeN][faceN], 0, 0);
+        abi_CMD_BITMAP(gameField{faceIndex} + 52, 0, 0, 0);
+        abi_CMD_REDRAW(faceN);
+        lettersResIDOriginal[abi_cubeN][faceN] = gameField{faceIndex} + 52;
     }
 }
 
@@ -371,10 +354,6 @@ run(const pkt[], size, const src[]) {
     //abi_LogRcvPkt(pkt, size, src); // debug
 
     switch(abi_GetPktByte(pkt, 0)) {
-        case CMD_PAWN_DEBUG: {
-            //printf("[%s] CMD_PAWN_DEBUG\n", src);
-        }
-
         case CMD_TICK: {
             //printf("[%s] CMD_TICK\n", src);
         }
@@ -382,18 +361,8 @@ run(const pkt[], size, const src[]) {
         case CMD_ATTACH: {
             //printf("[%s] CMD_ATTACH\n", src);
             abi_attached = 1;
-            //if (size == 97) {
             abi_DeserializePositonsMatrix(pkt);
             abi_LogPositionsMatrix(); // DEBUG
-            /*} else {
-                printf("final attach!!!\n");
-                if (openDictionary == 0) {
-                    GetGameField();
-                    ReadDictionary();
-                    openDictionary = 1;
-                }
-                CheckRotationAxis();
-            }*/
             CheckRotationAxis();
             onCubeAttach();
         }
