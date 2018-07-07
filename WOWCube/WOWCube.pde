@@ -38,6 +38,8 @@ final byte CMD_GUI_BASE    = 0;
 final byte CMD_REDRAW      = CMD_GUI_BASE +  1; // CMD_REDRAW,faceN - copy framebuffer contents to the face specified
 final byte CMD_FILL        = CMD_GUI_BASE +  2; // CMD_FILL,R,G,B - to framebuffer, RGB565
 final byte CMD_BITMAP      = CMD_GUI_BASE +  3; // CMD_BITMAP,resID,X,Y,angle - to framebuffer, only angle=0|90|180|270 supported
+final byte CMD_BITMAP_CLIP = CMD_GUI_BASE +  4; // CMD_BITMAP_CLIP,resID,X,Y,x_ofs,y_ofs,width,height,angle - to framebuffer, only angle=0|90|180|270 supported
+
 final byte CMD_PAWN_BASE   = 100;
 final byte CMD_TICK        = CMD_PAWN_BASE + 1;
 final byte CMD_DETACH      = CMD_PAWN_BASE + 2;
@@ -841,6 +843,25 @@ class CPawnLogic // interface to/from Pawn
             PGraphics g = cs.c[c.cubeN].framebuffer;
             g.beginDraw();
               g.image(res[resID],x,y);
+            g.endDraw();
+          }
+          break;
+
+          case CMD_BITMAP_CLIP:
+          {
+            int resID = unhex(hex(c.pkt[2])+hex(c.pkt[1]));
+            int x = unhex(hex(c.pkt[4])+hex(c.pkt[3]));
+            int y = unhex(hex(c.pkt[6])+hex(c.pkt[5]));
+            int x_ofs = unhex(hex(c.pkt[8])+hex(c.pkt[7]));
+            int y_ofs = unhex(hex(c.pkt[10])+hex(c.pkt[9]));
+            int lv_width = unhex(hex(c.pkt[12])+hex(c.pkt[11]));
+            int lv_height = unhex(hex(c.pkt[14])+hex(c.pkt[13]));
+            int angle = unhex(hex(c.pkt[16])+hex(c.pkt[15]));
+            println("CMD_BITMAP_CLIP: resID="+resID+" x="+x+" y="+y+" angle="+angle+" --> FRAMEBUFFER["+c.cubeN+"]");
+            PGraphics g = cs.c[c.cubeN].framebuffer;
+            PImage crop = res[resID].get(x_ofs,y_ofs,lv_width,lv_height);
+            g.beginDraw();
+              g.image(crop,x,y);
             g.endDraw();
           }
           break;
