@@ -46,7 +46,7 @@ new lockedFaces{3};
 new perks{24};
 
 // Gameplay variables
-new score = 0;
+new score = 50;
 new maxTouches = 4;
 new wallTouch = 0;
 new gameover = 0;
@@ -58,8 +58,8 @@ new speedPerkActive = 0;
 //new speedBonus = 6;
 
 // Variables of position
-new speedX = 5;
-new speedY = 5;
+new speedX = 6;
+new speedY = 6;
 
 new positionX = 90;
 new positionY = 50;
@@ -67,21 +67,25 @@ new positionY = 50;
 new currFacePos = 0;
 new currCubePos = 0;
 
-CheckNeighbour (neighbour, coordinates, sideFlag) {
-    //printf("check neighbour = %d, coordinates = %d\n", neighbour, coordinates);
-    new cube;
-    new face;
-    GetCubeAndFace (neighbour, cube, face);
-    return CheckFaceExit (exitsFromCube{cube * 6 + 2 * face + sideFlag}, coordinates);
+CheckNeighbour (neighbour, x, y, sideFlag) {
+    //printf("check neighbour = %d\n", neighbour);
+    if (neighbour >= 0) {
+        new cube;
+        new face;
+        GetCubeAndFace (neighbour, cube, face);
+        return CheckFaceExit (exitsFromCube{cube * 6 + 2 * face + sideFlag}, x, y);
+    } else {
+        return 0;
+    }
 }
 
-CheckFaceExit (side, coordinates) {
-    //printf("side = %d, coordinates = %d\n", side, coordinates);
+CheckFaceExit (side, x , y) {
+    //printf("side = %d\n", side);
     new res = 0;
     switch (side) {
         case 1: { res = 1; }
-        case 2: { if (coordinates > 120) {res = 1;} }
-        case 3: { if (coordinates < 120) {res = 1;} }
+        case 2: { if (!CheckCollision(x, y,   0, 0, 120, 25)) {res = 1;} }
+        case 3: { if (!CheckCollision(x, y, 120, 0, 120, 25)) {res = 1;} }
     }
     //printf("res = %d\n", res);
     return res;
@@ -105,6 +109,7 @@ CheckLockedFaces () {
                 //printf("unlock xside = %d yside = %d\n", exitsFromCube {curFaceNum * 2}, exitsFromCube {curFaceNum * 2 + 1});
                 // Clear locked face
                 lockedFaces{i} = 0;
+                perks{lockedFaceNum} = GetRandomPerk(113, 124);
             }
         }
     }
@@ -220,7 +225,7 @@ DrawFace (cube, face) {
     //abi_CMD_BITMAP (90, 0,0,0);
     new perk = perks{faceNumber/2};
     if (perk > 100) {
-        abi_CMD_BITMAP (perk, 120, 160, 0);
+        abi_CMD_BITMAP (perk, 120, 150, 0);
     }
 }
 
@@ -231,10 +236,10 @@ GetRandomExit () {
     if (procents >= 95) {
         return 0;
     }
-    else if (procents >= 70) {
+    else if (procents >= 90) {
         return 3;
     }
-    else if (procents >= 55) {
+    else if (procents >= 85) {
         return 2;
     }
     else {
@@ -253,7 +258,7 @@ GenerateRandomLevel () {
     }
     // Perks
     for (new i = 1; i < 24; i++) {
-        perks{i} = GetRandomPerk(113, 120);
+        perks{i} = GetRandomPerk(113, 124);
     }
 }
 /*
@@ -300,6 +305,10 @@ MoveTo (&posX, &posY, &spdX, &spdY, destination) {
     temp = posX;
     posX = posY;
     posY = temp;
+
+    // If we somehow go out of bounds
+    if (posY >= 150) posY = 149;
+    if (posX >= 150) posX = 149;
 
     // Swap speeds
     temp = spdX;
@@ -391,6 +400,18 @@ PerkEffect (perkNumber) {
             speedY += GetSign(speedY) * 6;
             speedPerkActive = 1;
         }
+        case 120: {
+            score -= 10;
+        }
+        case 121: {
+            score -= 20;
+        }
+        case 122: {
+            score -= 30;
+        }
+        case 123: {
+            maxTouches--;
+        }
     }
 }
 
@@ -398,16 +419,25 @@ ABS (value) {
     return value < 0 ? value * -1 : value; 
 }
 
+// Standard rectangle collision detection
+CheckCollision (pos_x_A, pos_y_A, pos_x_B, pos_y_B, width_B, height_B) {
+    return (( pos_x_A + 64 > pos_x_B          ) &&
+            ( pos_x_A      < pos_x_B + width_B) &&
+            ( pos_y_A + 64 > pos_y_B          ) &&
+            ( pos_y_A      < pos_y_B + height_B ));
+}
+
 CheckPerk () {
-    new hasPerk = perks {currCubePos * 3 + currFacePos};
+    new curSide = currCubePos * 3 + currFacePos;
+    new hasPerk = perks {curSide};
     if (hasPerk > 0) {
-        if ((ABS(positionX - 120)*2 < 60) && (ABS(positionY - 160)*2 < 60)) {
-        //if ( ((positionX + 30 >= 120) && (positionX + 30 <= 150)) &&
-          //   ((positionY + 30 >= 160) && (positionY + 30 <= 190))) {
-                //printf("posX = %d posY = %d, face = %d\n", positionX, positionY, currCubePos * 3 + currFacePos);
-                //printf("founded perk = %d\n", hasPerk);
-                PerkEffect(hasPerk);
-                perks {currCubePos * 3 + currFacePos} = 0;
+        // Medkit 45x45 other perks are 64x64
+        if (hasPerk == 113 && CheckCollision(positionX, positionY, 120, 150, 45, 45)) {
+            PerkEffect(hasPerk);
+            perks {curSide} = 0;
+        } else if (CheckCollision(positionX, positionY, 120, 150, 64, 64)) {
+            PerkEffect(hasPerk);
+            perks {curSide} = 0;
         }
     }
 }
@@ -416,11 +446,11 @@ ChecklWallTouch () {
     wallTouch++;
     score++;
     if (speedPerkActive) {
-        speedX += GetSign(speedX) * -1;
-        speedY += GetSign(speedY) * -1;
-        //printf("decrease speed speedX = %d speedY = %d\n", speedX, speedY);
+        speedX = speedX + GetSign(speedX) * -1;
+        speedY = speedY + GetSign(speedY) * -1;
+        //printf("decrease speed speedX = %d speedY = %d\n", ABS(speedX), ABS(speedY));
         score++;
-        if (speedX == 5) {
+        if (ABS(speedX) == 6) {
             speedPerkActive = 0;
         }
     }
@@ -441,15 +471,11 @@ onCubeTick() {
     //printf("abi_cubeN = %d currCubePos = %d\n", abi_cubeN, currCubePos);
     if (!gameover) {
         gameCurTimer += 1;
-
-        if ((positionY >= 190) || (positionY <= 25) && !CheckFaceExit (exitsFromCube{currCubePos * 6 + 2 * currFacePos}, positionX) && (speedY < 0)) {
-            //printf("Can't move through Y block INSIDE\n");
-            ChecklWallTouch();
-            speedY *= -1;
-        }
-        else if ((positionY <= 0)) {
-            new yNeighbour = adjacencyList[currCubePos * 3 + currFacePos]{2}; 
-            if (CheckNeighbour (yNeighbour, positionX, 1)) {
+        new sideNumber = currCubePos * 3 + currFacePos;
+        //printf("positionX = %d positionY = %d\n", positionX, positionY);
+        if ((positionY <= 0)) {
+            new yNeighbour = adjacencyList[sideNumber]{2}; 
+            if (CheckNeighbour (yNeighbour, positionX, positionY, 1)) {
                 //printf("MoveTo -x\n");
                 MoveTo (positionX, positionY, speedY, speedX, yNeighbour);
             } else {
@@ -458,15 +484,15 @@ onCubeTick() {
                 speedY *= -1;
             }
         }
-        // Decreasing Y we cross X
-        else if ((positionX >= 190) || (positionX <= 25) && !CheckFaceExit (exitsFromCube{currCubePos * 6 + 2 * currFacePos + 1}, positionY) && (speedX < 0)) {
-           // printf("Can't move through X block INSIDE\n");
+        else if ((positionY >= 150) || (positionY <= 25) && !CheckFaceExit (exitsFromCube{sideNumber * 2}, positionX, positionY) && (speedY < 0)) {
+            //printf("Can't move through Y block INSIDE\n");
             ChecklWallTouch();
-            speedX *= -1;
+            speedY *= -1;
         }
+        // Decreasing Y we cross X
         else if (positionX <= 0) {
-            new xNeighbour = adjacencyList[currCubePos * 3 + currFacePos]{3}; 
-            if (CheckNeighbour (xNeighbour, positionY, 0)) {
+            new xNeighbour = adjacencyList[sideNumber]{3}; 
+            if (CheckNeighbour (xNeighbour, positionY, positionX, 0)) {
                 //printf("MoveTo -y\n");
                 MoveTo (positionX, positionY, speedX, speedY, xNeighbour);
             } else {
@@ -475,10 +501,15 @@ onCubeTick() {
                 speedX *= -1;
             }
         }
-        
+        else if ((positionX >= 150) || (positionX <= 25) && !CheckFaceExit (exitsFromCube{sideNumber * 2 + 1}, positionY, positionX) && (speedX < 0)) {
+            //printf("Can't move through X block INSIDE\n");
+            ChecklWallTouch();
+            speedX *= -1;
+        }
+
         CheckPerk();
 
-        if (wallTouch == maxTouches) {
+        if ((wallTouch == maxTouches) || (score < 0)) {
             // Gameover
             gameover = 1;
             startBallEndPic = 111;
@@ -532,7 +563,7 @@ run(const pkt[], size, const src[]) {
 }
 
 main() {
-    GenerateRandomLevel();
+    //GenerateRandomLevel();
     //Drawlevel();
     new opt{100};
     argindex(0, opt);
