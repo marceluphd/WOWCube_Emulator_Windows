@@ -6,7 +6,34 @@
         {
             "label": "1) WOWCube compile Pipes game logic (Pawn language)",
             "type": "shell",
+            "command": "..\\..\\Pawn\\bin\\pawncc pipes.pwn -ogame",
+            "options": {
+                "cwd": "./pawn"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "1) WOWCube compile Scrabble game logic (Pawn language)",
+            "type": "shell",
+            "command": "..\\..\\Pawn\\bin\\pawncc Scrabble.pwn -ogame",
+            "options": {
+                "cwd": "./pawn"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "1) WOWCube compile Pong game logic (Pawn language)",
+            "type": "shell",
             "command": "..\\..\\Pawn\\bin\\pawncc pong.pwn -ogame",
+            "options": {
+                "cwd": "./pawn"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "1) WOWCube compile Shapes game logic (Pawn language)",
+            "type": "shell",
+            "command": "..\\..\\Pawn\\bin\\pawncc shapes.pwn -ogame",
             "options": {
                 "cwd": "./pawn"
             },

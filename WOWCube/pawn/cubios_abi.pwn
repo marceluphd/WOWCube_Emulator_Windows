@@ -15,6 +15,7 @@ native sendpacket(const packet[], const size);
 #define CMD_REDRAW      CMD_GUI_BASE+1 /* CMD_REDRAW,faceN - copy framebuffer contents to the face specified */
 #define CMD_FILL        CMD_GUI_BASE+2 /* CMD_FILL,R,G,B - to framebuffer, RGB565 */
 #define CMD_BITMAP      CMD_GUI_BASE+3 /* CMD_BITMAP,resID,X,Y,angle - to framebuffer, only angle=0|90|180|270 supported */
+#define CMD_BITMAP_CLIP CMD_GUI_BASE+4 /* CMD_BITMAP_CLIP,resID,X,Y,x_ofs,y_ofs,width,height,angle - to framebuffer, only angle=0|90|180|270 supported */
 #define CMD_PAWN_BASE   100
 #define CMD_TICK        CMD_PAWN_BASE+1
 #define CMD_DETACH      CMD_PAWN_BASE+2
@@ -170,6 +171,22 @@ abi_CMD_BITMAP(const resID, const x, const y, const angle)
   sendpacket(pkt, 3, GUI_ADDR);
 #else
   sendpacket(pkt, 3);
+#endif
+}
+
+abi_CMD_BITMAP_CLIP(const resID, const x, const y, const x_ofs, const y_ofs, const width, const height, const angle)
+{
+  new pkt[5] = 0;
+  pkt[0] = ((x & 0xFF) << 24) | ((resID & 0xFFFF) << 8) | (CMD_BITMAP_CLIP & 0xFF);
+  pkt[1] = ((x_ofs & 0xFF) << 24) | ((y & 0xFFFF) << 8) | ((x & 0xFF00) >> 8);
+  pkt[2] = ((width & 0xFF) << 24) | ((y_ofs & 0xFFFF) << 8) | ((x_ofs & 0xFF00) >> 8);
+  pkt[3] = ((angle & 0xFF) << 24) | ((height & 0xFFFF) << 8) | ((width & 0xFF00) >> 8);
+  pkt[4] = ((angle & 0xFF00) >> 8);
+  //abi_LogSndPkt(pkt, 5*4, abi_cubeN);
+#if defined CUBIOS_EMULATOR
+  sendpacket(pkt, 5, GUI_ADDR);
+#else
+  sendpacket(pkt, 5);
 #endif
 }
 
