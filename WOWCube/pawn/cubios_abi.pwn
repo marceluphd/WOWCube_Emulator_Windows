@@ -15,7 +15,6 @@ native sendpacket(const packet[], const size);
 #define CMD_REDRAW      CMD_GUI_BASE+1 /* CMD_REDRAW,faceN - copy framebuffer contents to the face specified */
 #define CMD_FILL        CMD_GUI_BASE+2 /* CMD_FILL,R,G,B - to framebuffer, RGB565 */
 #define CMD_BITMAP      CMD_GUI_BASE+3 /* CMD_BITMAP,resID,X,Y,angle - to framebuffer, only angle=0|90|180|270 supported */
-#define CMD_BITMAP_CLIP CMD_GUI_BASE+4 /* CMD_BITMAP_CLIP,resID,X,Y,x_ofs,y_ofs,width,height,angle - to framebuffer, only angle=0|90|180|270 supported */
 #define CMD_PAWN_BASE   100
 #define CMD_TICK        CMD_PAWN_BASE+1
 #define CMD_DETACH      CMD_PAWN_BASE+2
@@ -64,14 +63,14 @@ new abi_attached = 0; // 0 - cubes detached (rotating), 1 - cubes attached
 abi_LogRcvPkt(const pkt[], size, const src[])
 {
   printf("[%s] rcv pkt[%d]: ", src, size);
-  for(new abi_i=0; abi_i<size; abi_i++) printf(" %02x", abi_GetPktByte(pkt, abi_i));
+  for(new i=0; i<size; i++) printf(" %02x", abi_GetPktByte(pkt, i));
   printf("\n");
 }
 
 abi_LogSndPkt(const pkt[], size, const cubeN)
 {
   printf("[127.0.0.1:%d] snd pkt[%d]: ", PAWN_PORT_BASE+cubeN, size);
-  for(new abi_i=0; abi_i<size; abi_i++) printf(" %02x", abi_GetPktByte(pkt, abi_i));
+  for(new i=0; i<size; i++) printf(" %02x", abi_GetPktByte(pkt, i));
   printf("\n");
 }
 
@@ -79,12 +78,12 @@ abi_LogPositionsMatrix()
 {
   printf("PM state:\n");
   
-  for(new abi_y=(PROJECTION_MAX_Y-1); abi_y>=0; abi_y--)
+  for(new y=(PROJECTION_MAX_Y-1); y>=0; y--)
   {
-    for(new abi_x=0; abi_x<PROJECTION_MAX_X; abi_x++)
+    for(new x=0; x<PROJECTION_MAX_X; x++)
     {
-      if(abi_pm[abi_x][abi_y][0] == 0xFF) printf("      ");
-      else printf("[%d,%d] ", abi_pm[abi_x][abi_y][0], abi_pm[abi_x][abi_y][1]);
+      if(abi_pm[x][y][0] == 0xFF) printf("      ");
+      else printf("[%d,%d] ", abi_pm[x][y][0], abi_pm[x][y][1]);
     }
     printf("\n");
   }
@@ -99,21 +98,21 @@ abi_GetPktByte(const pkt[], const n)
 
 abi_DeserializePositonsMatrix(const pkt[])
 {
-  for(new abi_x=0; abi_x<PROJECTION_MAX_X; abi_x++)
-    for(new abi_y=0; abi_y<PROJECTION_MAX_Y; abi_y++)
-      for(new abi_z=0; abi_z<2; abi_z++)
-        abi_pm[abi_x][abi_y][abi_z] = abi_GetPktByte(pkt, 1+abi_x*6*2+abi_y*2+abi_z);
+  for(new x=0; x<PROJECTION_MAX_X; x++)
+    for(new y=0; y<PROJECTION_MAX_Y; y++)
+      for(new z=0; z<2; z++)
+        abi_pm[x][y][z] = abi_GetPktByte(pkt, 1+x*6*2+y*2+z);
 }
 
 abi_FacePositionAtProjection(const cubeN, const faceN, &projX, &projY, &projRotAngle)
 {
-  for(new abi_x=0; abi_x<PROJECTION_MAX_X; abi_x++)
-    for(new abi_y=0; abi_y<PROJECTION_MAX_Y; abi_y++)
+  for(new x=0; x<PROJECTION_MAX_X; x++)
+    for(new y=0; y<PROJECTION_MAX_Y; y++)
     {
-      if((abi_pm[abi_x][abi_y][0] == cubeN) && (abi_pm[abi_x][abi_y][1] == faceN))
+      if((abi_pm[x][y][0] == cubeN) && (abi_pm[x][y][1] == faceN))
       {
-        projX = abi_x; // found!
-        projY = abi_y;
+        projX = x; // found!
+        projY = y;
         projRotAngle = abi_pam[projX][projY];
         return;
       }
@@ -122,13 +121,13 @@ abi_FacePositionAtProjection(const cubeN, const faceN, &projX, &projY, &projRotA
 
 abi_InitialFacePositionAtProjection(const cubeN, const faceN, &projX, &projY, &projRotAngle)
 {
-  for(new abi_x=0; abi_x<PROJECTION_MAX_X; abi_x++)
-    for(new abi_y=0; abi_y<PROJECTION_MAX_Y; abi_y++)
+  for(new x=0; x<PROJECTION_MAX_X; x++)
+    for(new y=0; y<PROJECTION_MAX_Y; y++)
     {
-      if((abi_initial_pm[abi_x][abi_y][0] == cubeN) && (abi_initial_pm[abi_x][abi_y][1] == faceN))
+      if((abi_initial_pm[x][y][0] == cubeN) && (abi_initial_pm[x][y][1] == faceN))
       {
-        projX = abi_x; // found!
-        projY = abi_y;
+        projX = x; // found!
+        projY = y;
         projRotAngle = abi_pam[projX][projY];
         return;
       }
@@ -171,22 +170,6 @@ abi_CMD_BITMAP(const resID, const x, const y, const angle)
   sendpacket(pkt, 3, GUI_ADDR);
 #else
   sendpacket(pkt, 3);
-#endif
-}
-
-abi_CMD_BITMAP_CLIP(const resID, const x, const y, const x_ofs, const y_ofs, const width, const height, const angle)
-{
-  new pkt[5] = 0;
-  pkt[0] = ((x & 0xFF) << 24) | ((resID & 0xFFFF) << 8) | (CMD_BITMAP_CLIP & 0xFF);
-  pkt[1] = ((x_ofs & 0xFF) << 24) | ((y & 0xFFFF) << 8) | ((x & 0xFF00) >> 8);
-  pkt[2] = ((width & 0xFF) << 24) | ((y_ofs & 0xFFFF) << 8) | ((x_ofs & 0xFF00) >> 8);
-  pkt[3] = ((angle & 0xFF) << 24) | ((height & 0xFFFF) << 8) | ((width & 0xFF00) >> 8);
-  pkt[4] = ((angle & 0xFF00) >> 8);
-  //abi_LogSndPkt(pkt, 5*4, abi_cubeN);
-#if defined CUBIOS_EMULATOR
-  sendpacket(pkt, 5, GUI_ADDR);
-#else
-  sendpacket(pkt, 5);
 #endif
 }
 
