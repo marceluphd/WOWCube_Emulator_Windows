@@ -91,30 +91,6 @@ CheckFaceExit (side, x , y) {
     return res;
 }
 
-CheckLockedFaces () {
-    //printf("strlength = %d\n", strlen(lockedFaces));
-    for (new i = 0; i < 3; i++ ) {
-        if (lockedFaces{i} - 1 >= 0) {
-            new cube, face;
-            GetCubeAndFace(lockedFaces{i} - 1, cube, face);
-            new lockedFaceNum = cube * 3 + face;
-            new currFaceNum = currCubePos * 3 + currFacePos;
-            //printf("cube = %d face = %d\n", cube, face);
-            //printf("lockedFace-y = %d curFace = %d\n", adjacencyList [curFaceNum]{2}, currCubePos * 3 + currFacePos);
-            //printf("lockedFace-x = %d curFace = %d\n", adjacencyList [curFaceNum]{3}, currCubePos * 3 + currFacePos);
-            if (adjacencyList [lockedFaceNum]{2} != (currFaceNum) &&
-               (adjacencyList [lockedFaceNum]{3} != (currFaceNum))) {
-                exitsFromCube {lockedFaceNum * 2}     = GetRandomExit();
-                exitsFromCube {lockedFaceNum * 2 + 1} = GetRandomExit();
-                //printf("unlock xside = %d yside = %d\n", exitsFromCube {curFaceNum * 2}, exitsFromCube {curFaceNum * 2 + 1});
-                // Clear locked face
-                lockedFaces{i} = 0;
-                perks{lockedFaceNum} = GetRandomPerk(113, 124);
-            }
-        }
-    }
-}
-
 // nxN - negative x, outer neighbour
 // nyN - negative y, outer neighbour
 AddOuterNeighbour (me, nxN, nyN) {
@@ -273,7 +249,27 @@ Drawlevel(){
 */
 onCubeAttach() {
     GetNeightbours();
-    CheckLockedFaces();
+    //CheckLockedFaces();
+    for (new i = 0; i < 3; i++ ) {
+        if (lockedFaces{i} - 1 >= 0) {
+            new cube, face;
+            GetCubeAndFace(lockedFaces{i} - 1, cube, face);
+            new lockedFaceNum = cube * 3 + face;
+            new currFaceNum = currCubePos * 3 + currFacePos;
+            //printf("cube = %d face = %d\n", cube, face);
+            //printf("lockedFace-y = %d curFace = %d\n", adjacencyList [curFaceNum]{2}, currCubePos * 3 + currFacePos);
+            //printf("lockedFace-x = %d curFace = %d\n", adjacencyList [curFaceNum]{3}, currCubePos * 3 + currFacePos);
+            if (adjacencyList [lockedFaceNum]{2} != (currFaceNum) &&
+               (adjacencyList [lockedFaceNum]{3} != (currFaceNum))) {
+                exitsFromCube {lockedFaceNum * 2}     = GetRandomExit();
+                exitsFromCube {lockedFaceNum * 2 + 1} = GetRandomExit();
+                //printf("unlock xside = %d yside = %d\n", exitsFromCube {curFaceNum * 2}, exitsFromCube {curFaceNum * 2 + 1});
+                // Clear locked face
+                lockedFaces{i} = 0;
+                perks{lockedFaceNum} = GetRandomPerk(113, 124);
+            }
+        }
+    }
     for (new face = 0; face < 3 ; face++){
         DrawFace(abi_cubeN, face);
         abi_CMD_REDRAW (face);
@@ -394,8 +390,6 @@ PerkEffect (perkNumber) {
         }
         case 119: {
             //printf("get speed bust\n");
-            //speedX += GetSign(speedX) * speedBonus;
-            //speedY += GetSign(speedY) * speedBonus;
             speedX += GetSign(speedX) * 6;
             speedY += GetSign(speedY) * 6;
             speedPerkActive = 1;
@@ -550,8 +544,9 @@ run(const pkt[], size, const src[]) {
             abi_attached = 1;
             abi_DeserializePositonsMatrix(pkt);
             abi_LogPositionsMatrix(); // DEBUG
-
-            onCubeAttach();
+            if (!gameover) {
+                onCubeAttach();
+            }
         }
 
         case CMD_DETACH: {
@@ -563,7 +558,7 @@ run(const pkt[], size, const src[]) {
 }
 
 main() {
-    //GenerateRandomLevel();
+    GenerateRandomLevel();
     //Drawlevel();
     new opt{100};
     argindex(0, opt);

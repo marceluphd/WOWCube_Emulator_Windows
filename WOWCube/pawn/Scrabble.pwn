@@ -111,33 +111,19 @@ RememberWord (indexes[], coords[][]) {
     printf("Word: %s - remembered\n",letters);
 }
 
-GetWord (coords[][]) {
-    new word{9};
+GetWord (coords[][], word{}) {
     for (new i = 0; i < CUBES_MAX; i++) {
         //printf("%d-%d|",coords[i][0],coords[i][1]);
         //word{i} = gameField[coords[i][0]] [coords[i][1]] + 97;
         word{i} = gameField{coords[i][0] * 3 + coords[i][1]} + 97;
     }
-    word{8} = EOS;
-    return word;
 }
 
-ConcatinateArrays(arr1{}, arr2{}){
-    new doubleWord{17};
-    for (new i = 0; i < 8; i++) {
-        doubleWord{i} = arr1{i};
-        doubleWord{i+8} = arr2{i};
-    }
-    return doubleWord;
-}
-
-ReverseWord(word{}) {
-    new reverse {17};
+ReverseWord(word{}, rev{}) {
     for (new i = 0; i < 16; i++){
-        reverse{i} = word{15-i};
-        //printf ("word = %s, reverse = %s\n", word{15-i}, reverse{i});
+        rev{i} = word{15-i};
+        //printf ("word = %s, reversed = %s\n", word{15-i}, reversed{i});
     }
-    return reverse;
 }
 
 GetReverseIndex (index, length) {
@@ -150,16 +136,22 @@ GetReverseIndex (index, length) {
 
 FindWordInDictionary (coords[][]) {
     new word{9};
-    word = GetWord(coords);
+    GetWord(coords, word);
     //printf ("%s\n", word);
     // If word is separated, i.e. we need word "ability"
     // input string is "litywabi", we add word again and get "litywabi litywabi"
     // and search whole word "ability" in it
     new doubleWord{17};
-    new reverseWord {17};
-    doubleWord = ConcatinateArrays(word, word);
-    reverseWord = ReverseWord(doubleWord);
-    //printf ("doubleword = %s, reverseword = %s\n", doubleWord, reverseWord);
+    new reversedWord {17};
+
+    strcat (doubleWord, word);
+    //printf ("doubleword = %s\n", doubleWord);
+    strcat (doubleWord, word);
+    //printf ("doubleword = %s\n", doubleWord);
+    ReverseWord(doubleWord, reversedWord);
+    //strdel(reversedWord,17,32);
+
+    //printf ("doubleword = %s, reverseword = %s\n", doubleWord, reversedWord);
     new currWord{8};
     new beginIndex;
     new isReverse = 0;
@@ -168,7 +160,7 @@ FindWordInDictionary (coords[][]) {
         //printf("currWord = %s levelWords[i][0] = %s\n",currWord, levelWords[i][0]);
         beginIndex = strfind(doubleWord, currWord);
         if (beginIndex < 0){
-            beginIndex = strfind(reverseWord, currWord);
+            beginIndex = strfind(reversedWord, currWord);
             isReverse = 1;
         }
         //printf("beginIndex = %d\n",beginIndex);
@@ -267,36 +259,8 @@ GetGameField() {
             }
         }
     }
-    /*for (new cubeID = 0; cubeID < CUBES_MAX; cubeID++){
-        for (new faceID = 0; faceID < FACES_PER_CUBE; faceID++) {
-            printf ("%d\n",gameField{cubeID * 3 + faceID});
-        }
-    }*/
-    /*
-    // Get random letter to each face
-    for (new faceID = 0; faceID < FACES_PER_CUBE; faceID++) {
-        gameField[abi_cubeN][faceID] = random(26);
-    }
-    */
 }
-/*
-ReadDictionary(){
-    printf("ReadDictionary\n");
-    new File:dictionary = fopen("words3-8.txt", io_read);
-    if (dictionary) {
-        printf("file exist\n");
-        new string[256];
-        new i = 0;
-        new in = 0;
-        while ( fread(dictionary, string) ) {
-            in = strlen(string);
-            strdel(string, in-1, in+1);
-            strcat(allWords[i++][0], string, in);
-        }
-    }
-    fclose (dictionary);
-}
-*/
+
 //sewaqd
 //qaesd
 onCubeAttach() {
