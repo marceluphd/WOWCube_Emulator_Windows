@@ -64,14 +64,14 @@ new abi_attached = 0; // 0 - cubes detached (rotating), 1 - cubes attached
 abi_LogRcvPkt(const pkt[], size, const src[])
 {
   printf("[%s] rcv pkt[%d]: ", src, size);
-  for(new i=0; i<size; i++) printf(" %02x", abi_GetPktByte(pkt, i));
+  for(new abi_i=0; abi_i<size; abi_i++) printf(" %02x", abi_GetPktByte(pkt, abi_i));
   printf("\n");
 }
 
 abi_LogSndPkt(const pkt[], size, const cubeN)
 {
   printf("[127.0.0.1:%d] snd pkt[%d]: ", PAWN_PORT_BASE+cubeN, size);
-  for(new i=0; i<size; i++) printf(" %02x", abi_GetPktByte(pkt, i));
+  for(new abi_i=0; abi_i<size; abi_i++) printf(" %02x", abi_GetPktByte(pkt, abi_i));
   printf("\n");
 }
 
@@ -79,16 +79,29 @@ abi_LogPositionsMatrix()
 {
   printf("PM state:\n");
   
-  for(new y=(PROJECTION_MAX_Y-1); y>=0; y--)
+  for(new abi_y=(PROJECTION_MAX_Y-1); abi_y>=0; abi_y--)
   {
-    for(new x=0; x<PROJECTION_MAX_X; x++)
+    for(new abi_x=0; abi_x<PROJECTION_MAX_X; abi_x++)
     {
-      if(abi_pm[x][y][0] == 0xFF) printf("      ");
-      else printf("[%d,%d] ", abi_pm[x][y][0], abi_pm[x][y][1]);
+      if(abi_pm[abi_x][abi_y][0] == 0xFF) printf("      ");
+      else printf("[%d,%d] ", abi_pm[abi_x][abi_y][0], abi_pm[abi_x][abi_y][1]);
     }
     printf("\n");
   }
   printf("\n");
+}
+#else
+forward abi_GetCubeN();
+forward abi_SetCubeN(const cubeN);
+
+public abi_GetCubeN()
+{
+  return abi_cubeN;
+}
+
+public abi_SetCubeN(const cubeN)
+{
+  abi_cubeN = cubeN;
 }
 #endif
 
@@ -99,21 +112,21 @@ abi_GetPktByte(const pkt[], const n)
 
 abi_DeserializePositonsMatrix(const pkt[])
 {
-  for(new x=0; x<PROJECTION_MAX_X; x++)
-    for(new y=0; y<PROJECTION_MAX_Y; y++)
-      for(new z=0; z<2; z++)
-        abi_pm[x][y][z] = abi_GetPktByte(pkt, 1+x*6*2+y*2+z);
+  for(new abi_x=0; abi_x<PROJECTION_MAX_X; abi_x++)
+    for(new abi_y=0; abi_y<PROJECTION_MAX_Y; abi_y++)
+      for(new abi_z=0; abi_z<2; abi_z++)
+        abi_pm[abi_x][abi_y][abi_z] = abi_GetPktByte(pkt, 1+abi_x*6*2+abi_y*2+abi_z);
 }
 
 abi_FacePositionAtProjection(const cubeN, const faceN, &projX, &projY, &projRotAngle)
 {
-  for(new x=0; x<PROJECTION_MAX_X; x++)
-    for(new y=0; y<PROJECTION_MAX_Y; y++)
+  for(new abi_x=0; abi_x<PROJECTION_MAX_X; abi_x++)
+    for(new abi_y=0; abi_y<PROJECTION_MAX_Y; abi_y++)
     {
-      if((abi_pm[x][y][0] == cubeN) && (abi_pm[x][y][1] == faceN))
+      if((abi_pm[abi_x][abi_y][0] == cubeN) && (abi_pm[abi_x][abi_y][1] == faceN))
       {
-        projX = x; // found!
-        projY = y;
+        projX = abi_x; // found!
+        projY = abi_y;
         projRotAngle = abi_pam[projX][projY];
         return;
       }
@@ -122,13 +135,13 @@ abi_FacePositionAtProjection(const cubeN, const faceN, &projX, &projY, &projRotA
 
 abi_InitialFacePositionAtProjection(const cubeN, const faceN, &projX, &projY, &projRotAngle)
 {
-  for(new x=0; x<PROJECTION_MAX_X; x++)
-    for(new y=0; y<PROJECTION_MAX_Y; y++)
+  for(new abi_x=0; abi_x<PROJECTION_MAX_X; abi_x++)
+    for(new abi_y=0; abi_y<PROJECTION_MAX_Y; abi_y++)
     {
-      if((abi_initial_pm[x][y][0] == cubeN) && (abi_initial_pm[x][y][1] == faceN))
+      if((abi_initial_pm[abi_x][abi_y][0] == cubeN) && (abi_initial_pm[abi_x][abi_y][1] == faceN))
       {
-        projX = x; // found!
-        projY = y;
+        projX = abi_x; // found!
+        projY = abi_y;
         projRotAngle = abi_pam[projX][projY];
         return;
       }
