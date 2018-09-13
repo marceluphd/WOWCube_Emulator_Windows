@@ -42,8 +42,8 @@ final byte CMD_BITMAP_CLIP = CMD_GUI_BASE +  4; // CMD_BITMAP_CLIP,resID,X,Y,x_o
 
 final byte CMD_PAWN_BASE   = 100;
 final byte CMD_TICK        = CMD_PAWN_BASE + 1;
-final byte CMD_DETACH      = CMD_PAWN_BASE + 2;
-final byte CMD_ATTACH      = CMD_PAWN_BASE + 3; // CMD_ATTACH,positions_matrix_here
+final byte CMD_GEO         = CMD_PAWN_BASE + 2;
+//final byte CMD_DETACH      = CMD_PAWN_BASE + 3; // CMD_ATTACH,positions_matrix_here
 final byte TICK_DELAY      = 100; //Tick Deley in milliseconds
 
 // LCD display object at cube's face
@@ -582,7 +582,7 @@ class CCubeSet
   }
   
   public void printPositionMatrix()
-  {
+  {/*
     for(int y=5; y>=0; y--)
     {
       for(int x=0; x<8; x++)
@@ -592,7 +592,7 @@ class CCubeSet
       }
       print("\n");
     }
-    print("\n");
+    print("\n");*/
   }
 }
 
@@ -809,7 +809,7 @@ class CPawnLogic // interface to/from Pawn
         {
           case CMD_REDRAW:
             int faceN = c.pkt[1];
-            println("CMD_REDRAW: FRAMEBUFFER["+c.cubeN+"] --> cubeN="+c.cubeN+" faceN="+faceN);
+            //println("CMD_REDRAW: FRAMEBUFFER["+c.cubeN+"] --> cubeN="+c.cubeN+" faceN="+faceN);
             PGraphics src = cs.c[c.cubeN].framebuffer;
             PGraphics dst = cs.c[c.cubeN].f[faceN].d.g;
             src.loadPixels();
@@ -825,7 +825,7 @@ class CPawnLogic // interface to/from Pawn
             int R = unhex(hex(c.pkt[1]));
             int G = unhex(hex(c.pkt[2]));
             int B = unhex(hex(c.pkt[3]));
-            println("CMD_FILL: R="+R+" G="+G+" B="+B+" --> FRAMEBUFFER["+c.cubeN+"]");
+            //println("CMD_FILL: R="+R+" G="+G+" B="+B+" --> FRAMEBUFFER["+c.cubeN+"]");
             PGraphics g = cs.c[c.cubeN].framebuffer;
             g.beginDraw();
               g.background(R,G,B);
@@ -836,12 +836,17 @@ class CPawnLogic // interface to/from Pawn
           case CMD_BITMAP:
           {
             int resID = unhex(hex(c.pkt[2])+hex(c.pkt[1]));
-            int x = unhex(hex(c.pkt[4])+hex(c.pkt[3]));
-            int y = unhex(hex(c.pkt[6])+hex(c.pkt[5]));
+            int x = unhex(hex(c.pkt[4])+hex(c.pkt[3]))-res[resID].width/2;
+            int y = unhex(hex(c.pkt[6])+hex(c.pkt[5]))-res[resID].height/2;
             int angle = unhex(hex(c.pkt[8])+hex(c.pkt[7]));
-            println("CMD_BITMAP: resID="+resID+" x="+x+" y="+y+" angle="+angle+" --> FRAMEBUFFER["+c.cubeN+"]");
+            float angleRadians = radians(angle);
+            //println("res="+resID+"w="+res[resID].width+"w="+res[resID].height);
+            //println("CMD_BITMAP: resID="+resID+" x="+x+" y="+y+" angle="+angle+" --> FRAMEBUFFER["+c.cubeN+"]");
             PGraphics g = cs.c[c.cubeN].framebuffer;
             g.beginDraw();
+              g.translate(SSP/2,SSP/2);
+              g.rotate(angleRadians);
+              g.translate(-SSP/2,-SSP/2);
               g.image(res[resID],x,y);
             g.endDraw();
           }
@@ -850,17 +855,21 @@ class CPawnLogic // interface to/from Pawn
           case CMD_BITMAP_CLIP:
           {
             int resID = unhex(hex(c.pkt[2])+hex(c.pkt[1]));
-            int x = unhex(hex(c.pkt[4])+hex(c.pkt[3]));
-            int y = unhex(hex(c.pkt[6])+hex(c.pkt[5]));
+            int x = unhex(hex(c.pkt[4])+hex(c.pkt[3]))-res[resID].width/2;
+            int y = unhex(hex(c.pkt[6])+hex(c.pkt[5]))-res[resID].height/2;
             int x_ofs = unhex(hex(c.pkt[8])+hex(c.pkt[7]));
             int y_ofs = unhex(hex(c.pkt[10])+hex(c.pkt[9]));
             int lv_width = unhex(hex(c.pkt[12])+hex(c.pkt[11]));
             int lv_height = unhex(hex(c.pkt[14])+hex(c.pkt[13]));
             int angle = unhex(hex(c.pkt[16])+hex(c.pkt[15]));
-            println("CMD_BITMAP_CLIP: resID="+resID+" x="+x+" y="+y+" angle="+angle+" --> FRAMEBUFFER["+c.cubeN+"]");
+            float angleRadians = radians(angle);
+            //println("CMD_BITMAP_CLIP: resID="+resID+" x="+x+" y="+y+" angle="+angle+" --> FRAMEBUFFER["+c.cubeN+"]");
             PGraphics g = cs.c[c.cubeN].framebuffer;
             PImage crop = res[resID].get(x_ofs,y_ofs,lv_width,lv_height);
             g.beginDraw();
+              g.translate(SSP/2,SSP/2);
+              g.rotate(angleRadians);
+              g.translate(-SSP/2,-SSP/2);
               g.image(crop,x,y);
             g.endDraw();
           }
@@ -883,27 +892,92 @@ class CPawnLogic // interface to/from Pawn
   
   void onCsDetach() // cubeset detached (rotate anim started) 
   {
-    byte[] data = new byte[1];
-    data[0] = CMD_DETACH;
-    for(int i=0; i<CUBES; i++) udp.send(data, PAWN_HOST, PAWN_PORT_BASE+i);
+    //byte[] data = new byte[1];
+    //data[0] = CMD_DETACH;
+    //for(int i=0; i<CUBES; i++) udp.send(data, PAWN_HOST, PAWN_PORT_BASE+i);
   }
-  
   void onCsAttach() // cubeset attached (rotate anim ends)
   {
-    byte[] data = new byte[1+8*6*2];
-    data[0] = CMD_ATTACH;
+    byte[] data = new byte[2+FPC*CUBES*6];
+    data[0] = CMD_GEO;
+    data[1] = 0;
+    int rb;
+
+    int x_Neighbor, y_Neighbor;
+    // serialize positions matrix
     for(int x=0; x<8; x++)
+    {
       for(int y=0; y<6; y++)
-        for(int z=0; z<2; z++)
-          data[1+x*6*2+y*2+z] = cs.pm[x][y][z]; // serialize positions matrix
+      {
+        if (cs.pm[x][y][0] != -1)
+        {
+          rb = 2+data[1]*6;
+          //current cube+face
+          data[rb+0] = cs.pm[x][y][0];
+          data[rb+1] = cs.pm[x][y][1];
+          
+          x_Neighbor=x/2;
+          x_Neighbor=x-x/2*2;
+          y_Neighbor=y/2;
+          y_Neighbor=y-y/2*2;
+          data[1]++;
+
+          if (x_Neighbor==0)
+          {
+             if (y_Neighbor==0)
+             {
+               //top cube+face
+               data[rb+2] = cs.pm[x+1][y][0];
+               data[rb+3] = cs.pm[x+1][y][1];
+               //left cube+face
+               data[rb+4] = cs.pm[x][y+1][0];
+               data[rb+5] = cs.pm[x][y+1][1];
+             }else
+             {
+               //top cube+face
+               data[rb+2] = cs.pm[x][y-1][0];
+               data[rb+3] = cs.pm[x][y-1][1];
+               //left cube+face
+               data[rb+4] = cs.pm[x+1][y][0];
+               data[rb+5] = cs.pm[x+1][y][1];
+             }
+          }else
+          {
+             if (y_Neighbor==0)
+             {
+               //top cube+face
+               data[rb+2] = cs.pm[x][y+1][0];
+               data[rb+3] = cs.pm[x][y+1][1];
+               //left cube+face
+               data[rb+4] = cs.pm[x-1][y][0];
+               data[rb+5] = cs.pm[x-1][y][1];
+             }else
+             {
+               //top cube+face
+               data[rb+2] = cs.pm[x-1][y][0];
+               data[rb+3] = cs.pm[x-1][y][1];
+               //left cube+face
+               data[rb+4] = cs.pm[x][y-1][0];
+               data[rb+5] = cs.pm[x][y-1][1];
+             }
+          }
+          //top cube+face
+          //data[rb+2] = getTopNeighborCubeN(x,y);
+          //data[rb+3] = getTopNeighborFaceN(x,y);
+          //left cube+face
+          //data[rb+4] = getLeftNeighborCubeN(x,y);
+          //data[rb+5] = getLeftNeighborFaceN(x,y);
+        }
+      }
+    }
     for(int i=0; i<CUBES; i++) udp.send(data, PAWN_HOST, PAWN_PORT_BASE+i);
   }
 
   void logUDP(byte[] pkt, String ip, int port)
   {
-    print("["+ip+":"+port+"] rcv pkt["+pkt.length+"]: ");
-    for(int i=0; i<pkt.length; i++) print(hex(pkt[i])+" ");
-    println();
+    //print("["+ip+":"+port+"] rcv pkt["+pkt.length+"]: ");
+    //for(int i=0; i<pkt.length; i++) print(hex(pkt[i])+" ");
+    //println();
   }
 
   void onUDP(byte[] pkt, String ip, int port)
@@ -942,7 +1016,7 @@ void draw()
   }
 
   logic.draw();
-  cs.drawOverlays(false, false, false, false);
+  cs.drawOverlays(true, true, false, false);
  
   pushMatrix();
     translate(2.2*FSP, 2.2*FSP, -3.0*FSP);

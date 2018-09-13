@@ -8,8 +8,10 @@ native sendpacket(const packet[], const size);
 #endif
 
 // ABI global constants
+#if defined CUBIOS_EMULATOR
 #define GUI_ADDR "127.0.0.1:9999"
 #define PAWN_PORT_BASE  10000
+#endif
 
 #define CMD_GUI_BASE    0
 #define CMD_REDRAW      CMD_GUI_BASE+1 /* CMD_REDRAW,faceN - copy framebuffer contents to the face specified */
@@ -18,123 +20,127 @@ native sendpacket(const packet[], const size);
 #define CMD_BITMAP_CLIP CMD_GUI_BASE+4 /* CMD_BITMAP_CLIP,resID,X,Y,x_ofs,y_ofs,width,height,angle - to framebuffer, only angle=0|90|180|270 supported */
 #define CMD_PAWN_BASE   100
 #define CMD_TICK        CMD_PAWN_BASE+1
-#define CMD_DETACH      CMD_PAWN_BASE+2
-#define CMD_ATTACH      CMD_PAWN_BASE+3 /* CMD_ATTACH,positions_matrix_here */
-
-#define DISPLAY_PX  240 // 240x240
-
-#define PROJECTION_MAX_X  8
-#define PROJECTION_MAX_Y  6
+#define CMD_GEO         CMD_PAWN_BASE+2 /* CMD_ATTACH, n_records, <TRBL records here> */
 
 #define CUBES_MAX 8
-#define FACES_PER_CUBE 3
-#define RIBS_PER_CUBE 4
-
-// Initial "Positions Matrix" 8x6-24 "projection", each node in 2D matrix is {cubeID,faceID}
-new const abi_initial_pm[][][] = [
-  [[-1,-1], [-1,-1], [ 6, 2], [ 5, 1], [-1,-1], [-1,-1]],
-  [[-1,-1], [-1,-1], [ 3, 1], [ 0, 2], [-1,-1], [-1,-1]],
-  [[ 6, 1], [ 3, 2], [ 3, 0], [ 0, 0], [ 0, 1], [ 5, 2]],
-  [[ 7, 2], [ 2, 1], [ 2, 0], [ 1, 0], [ 1, 2], [ 4, 1]],
-  [[-1,-1], [-1,-1], [ 2, 2], [ 1, 1], [-1,-1], [-1,-1]],
-  [[-1,-1], [-1,-1], [ 7, 1], [ 4, 2], [-1,-1], [-1,-1]],
-  [[-1,-1], [-1,-1], [ 7, 0], [ 4, 0], [-1,-1], [-1,-1]],
-  [[-1,-1], [-1,-1], [ 6, 0], [ 5, 0], [-1,-1], [-1,-1]],
-]
-
-// "Projection Angle Matrix" 8x6-24, i.e. "how to rotate HW faces to get flat 2D field"
-new const abi_pam[PROJECTION_MAX_X][PROJECTION_MAX_Y] = [
-  [0,     0,  90, 180,   0,   0],
-  [0,     0,   0, 270,   0,   0],
-  [90,  180,  90, 180,  90, 180],
-  [0,   270,   0, 270,   0, 270],
-  [0,     0,  90, 180,   0,   0],
-  [0,     0,   0, 270,   0,   0],
-  [0,     0,  90, 180,   0,   0],
-  [0,     0,   0, 270,   0,   0]
-];
+#define FACES_MAX 3
+#define TRBL_TOP 0
+#define TRBL_RIGHT 1
+#define TRBL_BOTTOM 2
+#define TRBL_LEFT 3
+#define TRBL_RECORDS_MAX CUBES_MAX*FACES_MAX // number of faces total
 
 // ABI global variables
 new abi_cubeN = 0;
-new abi_pm[PROJECTION_MAX_X][PROJECTION_MAX_Y][2]; // positions matrix
-new abi_attached = 0; // 0 - cubes detached (rotating), 1 - cubes attached
+new abi_TRBL[TRBL_RECORDS_MAX][2]; // TRBL neighbors cubeN,faceN => top(cubeN,faceN),right(cubeN,faceN),bottom(cubeN,faceN),left(cubeN,faceN)
 
 // ABI helpers
 #if defined CUBIOS_EMULATOR
 abi_LogRcvPkt(const pkt[], size, const src[])
 {
   printf("[%s] rcv pkt[%d]: ", src, size);
-  for(new abi_i=0; abi_i<size; abi_i++) printf(" %02x", abi_GetPktByte(pkt, abi_i));
+  for(new abi_i=0; abi_i<size; abi_i++) printf(" %02x", abi_ByteN(pkt, abi_i));
   printf("\n");
 }
 
 abi_LogSndPkt(const pkt[], size, const cubeN)
 {
   printf("[127.0.0.1:%d] snd pkt[%d]: ", PAWN_PORT_BASE+cubeN, size);
-  for(new abi_i=0; abi_i<size; abi_i++) printf(" %02x", abi_GetPktByte(pkt, abi_i));
+  for(new abi_i=0; abi_i<size; abi_i++) printf(" %02x", abi_ByteN(pkt, abi_i));
   printf("\n");
 }
+#else
+forward abi_GetCubeN();
+forward abi_SetCubeN(const cubeN);
 
-abi_LogPositionsMatrix()
+public abi_GetCubeN()
 {
-  printf("PM state:\n");
-  
-  for(new abi_y=(PROJECTION_MAX_Y-1); abi_y>=0; abi_y--)
-  {
-    for(new abi_x=0; abi_x<PROJECTION_MAX_X; abi_x++)
-    {
-      if(abi_pm[abi_x][abi_y][0] == 0xFF) printf("      ");
-      else printf("[%d,%d] ", abi_pm[abi_x][abi_y][0], abi_pm[abi_x][abi_y][1]);
-    }
-    printf("\n");
-  }
-  printf("\n");
+  return abi_cubeN;
+}
+
+public abi_SetCubeN(const cubeN)
+{
+  abi_cubeN = cubeN;
 }
 #endif
 
-abi_GetPktByte(const pkt[], const n)
+abi_ByteN(const arr[], const n)
 {
-  return ((pkt[n/4] >> (8*(n%4))) & 0xFF);
+  return ((arr[n/4] >> (8*(n%4))) & 0xFF);
 }
 
-abi_DeserializePositonsMatrix(const pkt[])
+abi_TRBL_Deserialize(const pkt[])
 {
-  for(new abi_x=0; abi_x<PROJECTION_MAX_X; abi_x++)
-    for(new abi_y=0; abi_y<PROJECTION_MAX_Y; abi_y++)
-      for(new abi_z=0; abi_z<2; abi_z++)
-        abi_pm[abi_x][abi_y][abi_z] = abi_GetPktByte(pkt, 1+abi_x*6*2+abi_y*2+abi_z);
-}
-
-abi_FacePositionAtProjection(const cubeN, const faceN, &projX, &projY, &projRotAngle)
-{
-  for(new abi_x=0; abi_x<PROJECTION_MAX_X; abi_x++)
-    for(new abi_y=0; abi_y<PROJECTION_MAX_Y; abi_y++)
+  new n_r = abi_ByteN(pkt, 1); // number of records passed in the pkt
+  new rb;
+  for(new r=0; r<TRBL_RECORDS_MAX; r++)
+  {
+    
+    if(r < n_r)
     {
-      if((abi_pm[abi_x][abi_y][0] == cubeN) && (abi_pm[abi_x][abi_y][1] == faceN))
-      {
-        projX = abi_x; // found!
-        projY = abi_y;
-        projRotAngle = abi_pam[projX][projY];
-        return;
-      }
+      // store record
+      rb = 2+r*6; // record base offset
+      abi_TRBL[r][0] = (abi_ByteN(pkt, rb+0) << 24) | (abi_ByteN(pkt, rb+1) << 16) | (abi_ByteN(pkt, rb+2) << 8) | abi_ByteN(pkt, rb+3); // cubeN, faceN, topCubeN, topFaceN
+      abi_TRBL[r][1] = (abi_ByteN(pkt, rb+4) << 24) | (abi_ByteN(pkt, rb+5) << 16) | 0xFFFF; // leftCubeN, leftFaceN, <TRBL record padding 0xFFFF>
     }
-}
-
-abi_InitialFacePositionAtProjection(const cubeN, const faceN, &projX, &projY, &projRotAngle)
-{
-  for(new abi_x=0; abi_x<PROJECTION_MAX_X; abi_x++)
-    for(new abi_y=0; abi_y<PROJECTION_MAX_Y; abi_y++)
+    else
     {
-      if((abi_initial_pm[abi_x][abi_y][0] == cubeN) && (abi_initial_pm[abi_x][abi_y][1] == faceN))
-      {
-        projX = abi_x; // found!
-        projY = abi_y;
-        projRotAngle = abi_pam[projX][projY];
-        return;
-      }
+      // fill rest with FFs
+      abi_TRBL[r][0] = 0xFFFFFFFF;
+      abi_TRBL[r][1] = 0xFFFFFFFF;
     }
+  }
+
 }
 
+abi_TRBL_FindRecordIndex(const _cubeN, const _faceN)
+{
+  for(new idx=0; idx<TRBL_RECORDS_MAX; idx++) if((abi_TRBL[idx][0] >> 16) == ((_cubeN << 8) | (_faceN))) return idx;
+  return TRBL_RECORDS_MAX; // not found
+}
+
+
+abi_topCubeN(const _idx)
+{
+  return (abi_TRBL[_idx][0] >> 8) & 0xFF;
+}
+
+abi_topFaceN(const _idx)
+{
+  return (abi_TRBL[_idx][0] >> 0) & 0xFF;
+}
+
+abi_rightCubeN(const _idx)
+{
+  return abi_cubeN; // always same cube
+}
+
+abi_rightFaceN(const _idx)
+{
+  new screen = ((abi_TRBL[_idx][0] >> 16) & 0xFF); // screen for which we look screen @ right
+  return ((screen == 0) ? 2 : ((screen == 1) ? 0 : 1));
+}
+
+abi_bottomCubeN(const _idx)
+{
+  return abi_cubeN; // always same cube
+}
+
+abi_bottomFaceN(const _idx)
+{
+  new screen = ((abi_TRBL[_idx][0] >> 16) & 0xFF); // screen for which we look screen @ bottom
+  return ((screen == 0) ? 1 : ((screen == 1) ? 2 : 0));
+}
+
+abi_leftCubeN(const _idx)
+{
+  return (abi_TRBL[_idx][1] >> 24) & 0xFF;
+}
+
+abi_leftFaceN(const _idx)
+{
+  return (abi_TRBL[_idx][1] >> 16) & 0xFF;
+}
 // ABI functions - sends commands to GUI
 abi_CMD_REDRAW(const faceN)
 {
