@@ -855,8 +855,8 @@ class CPawnLogic // interface to/from Pawn
           case CMD_BITMAP_CLIP:
           {
             int resID = unhex(hex(c.pkt[2])+hex(c.pkt[1]));
-            int x = unhex(hex(c.pkt[4])+hex(c.pkt[3]))-res[resID].width/2;
-            int y = unhex(hex(c.pkt[6])+hex(c.pkt[5]))-res[resID].height/2;
+            int x = unhex(hex(c.pkt[4])+hex(c.pkt[3]));
+            int y = unhex(hex(c.pkt[6])+hex(c.pkt[5]));
             int x_ofs = unhex(hex(c.pkt[8])+hex(c.pkt[7]));
             int y_ofs = unhex(hex(c.pkt[10])+hex(c.pkt[9]));
             int lv_width = unhex(hex(c.pkt[12])+hex(c.pkt[11]));
@@ -866,6 +866,8 @@ class CPawnLogic // interface to/from Pawn
             //println("CMD_BITMAP_CLIP: resID="+resID+" x="+x+" y="+y+" angle="+angle+" --> FRAMEBUFFER["+c.cubeN+"]");
             PGraphics g = cs.c[c.cubeN].framebuffer;
             PImage crop = res[resID].get(x_ofs,y_ofs,lv_width,lv_height);
+            x = x - crop.width/2;
+            y = y - crop.height/2;
             g.beginDraw();
               g.translate(SSP/2,SSP/2);
               g.rotate(angleRadians);
