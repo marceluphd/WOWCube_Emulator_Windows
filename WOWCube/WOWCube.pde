@@ -1,4 +1,7 @@
 import hypermedia.net.*;
+import java.awt.image.BufferedImage;
+import java.awt.geom.AffineTransform;
+import java.awt.image.AffineTransformOp;
 UDP udp;
 
 final int FSP = 260; // FACE_SIZE_PIXELS
@@ -797,6 +800,29 @@ class CPawnLogic // interface to/from Pawn
       res[i] = loadImage("Resources/"+files.get(i));
   }
   
+  PImage rotateImage(PImage res, int resID, int angle)
+  {
+    BufferedImage BimageBefore = (BufferedImage) res.getImage();
+    BufferedImage BimageAfter;
+    float angleRadians = radians(angle);
+    //BimageBefore = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
+    AffineTransform at = new AffineTransform();
+    at.translate(res.height/2,res.width/2);
+    at.rotate(angleRadians);
+    at.translate(-res.height/2,-res.width/2);
+    AffineTransformOp scaleOp = new AffineTransformOp(at, AffineTransformOp.TYPE_BILINEAR);
+    
+    if ((angle==90) || (angle==270))
+      BimageAfter = new BufferedImage(res.width,res.height,BufferedImage.TYPE_INT_RGB);
+    else
+      BimageAfter = new BufferedImage(res.height,res.width,BufferedImage.TYPE_INT_RGB);
+
+    BimageAfter = scaleOp.filter(BimageBefore, BimageAfter);
+    PImage ret = new PImage (BimageAfter); 
+    if (resID==13)
+    println(res.height+"|"+res.width+"|"+ret.height+"|"+ret.width);
+    return ret;
+  }
   void draw()
   {
     while(!pawn_cmd_queue.isEmpty())
@@ -827,8 +853,11 @@ class CPawnLogic // interface to/from Pawn
             int B = unhex(hex(c.pkt[3]));
             //println("CMD_FILL: R="+R+" G="+G+" B="+B+" --> FRAMEBUFFER["+c.cubeN+"]");
             PGraphics g = cs.c[c.cubeN].framebuffer;
+            //PColor newColor = new Color(R, G, B);
             g.beginDraw();
-              g.background(R,G,B);
+              //g.background(R,G,B);
+              g.fill(R,G,B);
+              g.rect(0, 0, 240, 240);
             g.endDraw();
           }
           break;
@@ -839,6 +868,22 @@ class CPawnLogic // interface to/from Pawn
             int x = unhex(hex(c.pkt[4])+hex(c.pkt[3]))-res[resID].width/2;
             int y = unhex(hex(c.pkt[6])+hex(c.pkt[5]))-res[resID].height/2;
             int angle = unhex(hex(c.pkt[8])+hex(c.pkt[7]));
+            if (angle == 270)
+            {
+              y = unhex(hex(c.pkt[4])+hex(c.pkt[3]))-res[resID].height/2;
+              x = unhex(hex(c.pkt[6])+hex(c.pkt[5]))-res[resID].width/2;
+            }
+            if (angle == 180)
+            {
+              x = 240 - (unhex(hex(c.pkt[4])+hex(c.pkt[3]))+res[resID].width/2);
+              y = 240 - (unhex(hex(c.pkt[6])+hex(c.pkt[5]))+res[resID].height/2);
+            }
+            if (angle == 90)
+            {
+              y = 240 - (unhex(hex(c.pkt[4])+hex(c.pkt[3]))+res[resID].height/2);
+              x = 240 - (unhex(hex(c.pkt[6])+hex(c.pkt[5]))+res[resID].width/2);
+            }
+
             float angleRadians = radians(angle);
             //println("res="+resID+"w="+res[resID].width+"w="+res[resID].height);
             //println("CMD_BITMAP: resID="+resID+" x="+x+" y="+y+" angle="+angle+" --> FRAMEBUFFER["+c.cubeN+"]");
@@ -868,6 +913,24 @@ class CPawnLogic // interface to/from Pawn
             PImage crop = res[resID].get(x_ofs,y_ofs,lv_width,lv_height);
             x = x - crop.width/2;
             y = y - crop.height/2;
+            if ((angle == 270) || (angle==90))
+            if (angle == 270)
+            {
+              y = unhex(hex(c.pkt[4])+hex(c.pkt[3]))-crop.height/2;
+              x = unhex(hex(c.pkt[6])+hex(c.pkt[5]))-crop.width/2;
+              
+            }
+            if (angle == 180)
+            {
+              x = 240 - (unhex(hex(c.pkt[4])+hex(c.pkt[3]))-crop.width/2);
+              y = 240 - (unhex(hex(c.pkt[6])+hex(c.pkt[5]))+crop.height/2);
+            }
+            if (angle == 90)
+            {
+              y = 240 - (unhex(hex(c.pkt[4])+hex(c.pkt[3]))+crop.height/2);
+              x = 240 - (unhex(hex(c.pkt[6])+hex(c.pkt[5]))-crop.width/2);
+            }
+
             g.beginDraw();
               g.translate(SSP/2,SSP/2);
               g.rotate(angleRadians);

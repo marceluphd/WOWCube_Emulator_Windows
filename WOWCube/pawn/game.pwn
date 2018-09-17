@@ -16,7 +16,11 @@ forward run(const pkt[], size, const src[]); // public Pawn function seen from C
 #define PIPE_ANGLE_180 2
 #define PIPE_ANGLE_270 3
 
-#define STEAM_BASE 5
+#define STEAM_BASE 4
+
+#define BLANK_FIGURE 0
+#define CONNECTOR 13
+
 new steam_frame=0;
 
 new const figures[5][4][4] = [ // 5 figures, 4 angles, 4 connectors places - 256 bytes
@@ -28,14 +32,14 @@ new const figures[5][4][4] = [ // 5 figures, 4 angles, 4 connectors places - 256
 ]
 
 new const level[CUBES_MAX][FACES_MAX][2] = [ // [2] - 1st - resID, 2nd - rotation angle
-  [ [1,0], [2,0], [3,0] ], // cube0
-  [ [1,90], [1,90], [1,90] ], // cube1
-  [ [2,0], [2,0], [2,0] ], // cube2
-  [ [2,0], [2,0], [2,0] ], // cube3
-  [ [2,0], [2,0], [2,0] ], // cube4
-  [ [2,0], [2,0], [2,0] ], // cube5
-  [ [2,0], [2,0], [2,0] ], // cube6
-  [ [2,0], [2,0], [2,0] ]  // cube7
+  [ [4,   0], [2, 270], [1,   0] ], // cube0
+  [ [4,   0], [1,  90], [2,  90] ], // cube1
+  [ [1,   0], [3,   0], [0,   0] ], // cube2
+  [ [1,  90], [0,   0], [3, 270] ], // cube3
+  [ [2, 270], [0,   0], [1,   0] ], // cube4
+  [ [2,  90], [1,  90], [0,   0] ], // cube5
+  [ [2, 180], [2, 180], [0,   0] ], // cube6
+  [ [2, 180], [0,   0], [2, 180] ]  // cube7
 ];
 
 angle2pipeangle(const angle)
@@ -60,13 +64,15 @@ public run(const pkt[], size, const src[]) // public Pawn function seen from C
       new neighborFaceN = 0xFF;
       new neighborFigure = 0;
       new neighborFigureAngle = 0;
+      
       for(thisFaceN=0; thisFaceN<FACES_MAX; thisFaceN++)
       {
         thisFigure = level[thisCubeN][thisFaceN][0];
         thisFigureAngle = level[thisCubeN][thisFaceN][1];
         
         abi_CMD_FILL(0,0,0);
-        abi_CMD_BITMAP(thisFigure, 120, 120, thisFigureAngle); // draw figure
+        if (thisFigure!=BLANK_FIGURE)
+          abi_CMD_BITMAP(thisFigure-1, 120, 120, thisFigureAngle); // draw figure
         
         new idx = abi_TRBL_FindRecordIndex(thisCubeN, thisFaceN);
         if(idx >= TRBL_RECORDS_MAX) continue; // TRBL record not found!
@@ -88,7 +94,7 @@ public run(const pkt[], size, const src[]) // public Pawn function seen from C
           // if neighbor face has pipe and I also have
           else if((figures[neighborFigure][angle2pipeangle(neighborFigureAngle)][TRBL_LEFT] == 1) && (figures[thisFigure][angle2pipeangle(thisFigureAngle)][TRBL_TOP] == 1))
           {
-            abi_CMD_BITMAP(0, 120, 16, 180); // draw connector TOP
+            abi_CMD_BITMAP(CONNECTOR, 120, 16, 180); // draw connector TOP
           }
         }
         
@@ -109,7 +115,7 @@ public run(const pkt[], size, const src[]) // public Pawn function seen from C
           // if neighbor face has pipe and I also have
           else if((figures[neighborFigure][angle2pipeangle(neighborFigureAngle)][TRBL_BOTTOM] == 1) && (figures[thisFigure][angle2pipeangle(thisFigureAngle)][TRBL_RIGHT] == 1))
           {
-            abi_CMD_BITMAP(0, 224, 120, 270); // draw connector RIGHT
+            abi_CMD_BITMAP(CONNECTOR, 224, 120, 270); // draw connector RIGHT
           }
         }
         
@@ -130,7 +136,7 @@ public run(const pkt[], size, const src[]) // public Pawn function seen from C
           // if neighbor face has pipe and I also have
           else if((figures[neighborFigure][angle2pipeangle(neighborFigureAngle)][TRBL_RIGHT] == 1) && (figures[thisFigure][angle2pipeangle(thisFigureAngle)][TRBL_BOTTOM] == 1))
           {
-            abi_CMD_BITMAP(0, 120, 224, 0); // draw connector BOTTOM
+            abi_CMD_BITMAP(CONNECTOR, 120, 224, 0); // draw connector BOTTOM
           }
         }
         
@@ -151,7 +157,7 @@ public run(const pkt[], size, const src[]) // public Pawn function seen from C
           // if neighbor face has pipe and I also have
           else if((figures[neighborFigure][angle2pipeangle(neighborFigureAngle)][TRBL_TOP] == 1) && (figures[thisFigure][angle2pipeangle(thisFigureAngle)][TRBL_LEFT] == 1))
           {
-            abi_CMD_BITMAP(0, 16, 120, 90); // draw connector LEFT
+            abi_CMD_BITMAP(CONNECTOR, 16, 120, 90); // draw connector LEFT
           }
         }
         
