@@ -1,6 +1,6 @@
 #define CUBIOS_EMULATOR
 #include "cubios_abi.pwn"
-
+/*
 new adjacencyList []{} = [
                      //+x  +y -y -x
                       { 2,  1, 0, 0}, { 0,  2,0,0}, { 1,  0,0,0},
@@ -25,6 +25,7 @@ new oNy {} =  {2,3, 3,2, 1,0,
                3,2, 2,3, 4,5,
                2,3, 3,2, 0,1,
                3,2, 2,3, 5,4}; // outerNeighboursY
+ */              
 // Border type of the cube:
 // 0 - no exit
 // 1 - full exit
@@ -41,17 +42,29 @@ new exitsFromCube {} = {0,0, 0,0, 0,0,
                         0,0, 0,0, 0,0};
 
 // Faces which locked after ball leave them
-new lockedFaces{3};
+new lockedFaces{6};
 // Array of perks and antiperks
 new perks{24};
-
+// MtCtGoSbCcCfScore is a struct, where:
+// Mt - maximum touches    = 4 bits 
+// Ct - current touches    = 4 bits (4 bits because, may be, player collect more then 8 medkits)
+// Go - game over flag     = 1 bit
+// Sb - speed bonus active = 1 bit
+// Cc - current cube       = 3 bits
+// Cf - current face       = 2 bits
+// Score - player's score  = 16 bits
+//   4 byte    3 byte    2 byte    1 byte
+// 0000 0000 0000 0000 0000 0000 0000 0000
+// 0100 0111  111 1110                        
+//  Mt   Ct  GoSbCc Cf  Score
+//new MtCtGoSbCcCfScore = (4 << 28) | (0 << 24) | (0 << 22) | (0 << 21) | (0 << 18) | (0 << 16) | 50;
 // Gameplay variables
 new score = 50;
 new maxTouches = 4;
 new wallTouch = 0;
 new gameover = 0;
 new startBallEndPic = 90; // Picture for start "Shake to start", ball itself, end "URGH..."
-new gameEndTimer = 800;//2400;  // 3 minutes  240000 millisecond, but we send tick every 100 millisecond. so /100
+new gameEndTimer = 400;//2400;  // 3 minutes  240000 millisecond, but we send tick every 100 millisecond. so /100
 new gameCurTimer = 0;     // Current game time
 
 new speedPerkActive = 0;
@@ -67,22 +80,18 @@ new positionY = 50;
 new currFacePos = 0;
 new currCubePos = 0;
 
-CheckNeighbour (neighbour, x, y, sideFlag) {
-    //printf("check neighbour = %d\n", neighbour);
-    if (neighbour >= 0) {
-        new cube;
-        new face;
-        GetCubeAndFace (neighbour, cube, face);
-        return CheckFaceExit (exitsFromCube{cube * 6 + 2 * face + sideFlag}, x, y);
-    } else {
-        return 0;
-    }
+new xyMaxBorder = 188;
+new xyMinBorder = 25;
+
+CheckNeighbour (neighbour, face, x, y, sideFlag) {
+    //printf("check neighbour = %d, face = %d\n", neighbour, face);
+    return ((neighbour >= 0) ? CheckFaceExit (exitsFromCube{neighbour * 6 + 2 * face + sideFlag}, x, y) : 0 );
 }
 
-CheckFaceExit (side, x , y) {
-    //printf("side = %d\n", side);
+CheckFaceExit (exitType, x , y) {
+    //printf("exitType = %d\n", exitType);
     new res = 0;
-    switch (side) {
+    switch (exitType) {
         case 1: { res = 1; }
         case 2: { if (!CheckCollision(x, y,   0, 0, 120, 25)) {res = 1;} }
         case 3: { if (!CheckCollision(x, y, 120, 0, 120, 25)) {res = 1;} }
@@ -91,114 +100,63 @@ CheckFaceExit (side, x , y) {
     return res;
 }
 
-// nxN - negative x, outer neighbour
-// nyN - negative y, outer neighbour
-AddOuterNeighbour (me, nxN, nyN) {
-    adjacencyList [me]  {2} = nxN;
-    adjacencyList [nxN] {3} = me;
-
-    adjacencyList [me]  {3} = nyN;
-    adjacencyList [nyN] {2} = me;
-}
-
-GetNeightbours () {
-    new face0;
-    new face1;
-    new face2;
-    new faceX;
-    new faceY;
-    new cube;
-    // Get outer neighbours, connection between edges -x and -y
-    for (new i = 0, j = 0; i < 12; i += 3) {
-        // Get number of cube on exact coordinates
-        cube = abi_pm[iNx{i}][iNy{i}][0];
-        face0 = cube * 3 + abi_pm[iNx{i    }][iNy{i    }][1];
-        face1 = cube * 3 + abi_pm[iNx{i + 1}][iNy{i + 1}][1];
-        face2 = cube * 3 + abi_pm[iNx{i + 2}][iNy{i + 2}][1];
-
-        // Find and connect both outer neighbours for each face
-        // 1 face
-        faceX = abi_pm[oNx{j}][oNy{j}][0] * 3 + abi_pm[oNx{j}][oNy{j ++}][1];
-        faceY = abi_pm[oNx{j}][oNy{j}][0] * 3 + abi_pm[oNx{j}][oNy{j ++}][1];
-        AddOuterNeighbour (face0, faceX, faceY);
-        // 2 face
-        faceX = abi_pm[oNx{j}][oNy{j}][0] * 3 + abi_pm[oNx{j}][oNy{j ++}][1];
-        faceY = abi_pm[oNx{j}][oNy{j}][0] * 3 + abi_pm[oNx{j}][oNy{j ++}][1];
-        AddOuterNeighbour (face1, faceX, faceY);
-        // 3 face
-        faceX = abi_pm[oNx{j}][oNy{j}][0] * 3 + abi_pm[oNx{j}][oNy{j ++}][1];
-        faceY = abi_pm[oNx{j}][oNy{j}][0] * 3 + abi_pm[oNx{j}][oNy{j ++}][1];
-        AddOuterNeighbour (face2, faceX, faceY);
-    }
-}
-
 GetSign (number) {
     return number < 0 ? -1 : 1;
 }
-/*
-PrintNeighbours(){
-    printf("PrintNeighbours\n");
-    for (new cube = 0; cube < 8; cube++) {
-        for (new face = 0; face < 3; face++) {
-            printf("%d %d %d %d\n",adjacencyList[cube*3+face]{0},
-                                   adjacencyList[cube*3+face]{1},
-                                   adjacencyList[cube*3+face]{2},
-                                   adjacencyList[cube*3+face]{3});
-        }
-    }
-}
-*/
-GetCoordinates (faceNumber, exitNumber, &pic, &posX, &posY) {
-    posX = 0;
-    posY = 0;
-    new even = faceNumber % 2;
+
+GetCoordinates (faceSideXorY, exitNumber, &pic, &posX, &posY, &angle) {
+    // To reduce size of .amx
+    posX = posY = angle = 0;
+    pic = 96;
     switch (exitNumber) {
-        case 0: {   if (even) {  // 1
-                        pic = 95;
-                        posY = 4;
-                    } else {     // 0
-                        pic = 94;
-                        posX = 1;
+        case 0: {   pic = 92;
+                    posX = posY = 120;
+                    if (faceSideXorY) {  // if 1 then y
+                        posX = 13;                        
+                        angle = 180;
+                    } else {     // if 0 then x
+                        posY = 228;
+                        angle = 270;
                     }
                 }
-        case 2: {   if (even) {
+        case 1: {   pic = 0; posY = 400; }
+        case 2: {   posY = posX = 55;
+                    if (faceSideXorY) {
                         pic = 97;
+                        posX = 10;
                     } else {
-                        pic = 96;
+                        posY = 10;
                     }
                 }
-        case 3: {   if (even) {
-                        pic = 99;
-                        posY = 120;
+        case 3: {   if (faceSideXorY) {
+                        posY = 60;
+                        posX = 10;
+                        angle = 270;
                     } else {
-                        pic = 98;
-                        posX = 120;
+                        pic = 97;
+                        posX = 180;
+                        posY = 228;
+                        angle = 90;
                     }
                 }
     }
 }
 
 DrawFace (cube, face) {
+    // Background
+    abi_CMD_BITMAP (91, 120, 120, 0);
     // Close corners
-    abi_CMD_BITMAP (91, 0, 0, 0);
-    abi_CMD_BITMAP (92, 215, 3, 0);
-    abi_CMD_BITMAP (93, 0, 215, 0);
-    //printf("draw face %d %d\n", cube, face);
+    abi_CMD_BITMAP (92, 228, 119, 0);
+    abi_CMD_BITMAP (92, 119, 13, 90);
+    //printf("draw cube = %d face = %d\n", cube, face);
     new faceNumber = cube * 6 + 2 * face;
-    new pic, posX, posY;
+    new pic, posX, posY, angle;
     // Place walls
     // ♫ All in all you just another... Break in the wall! ♫
-    if (exitsFromCube{faceNumber} != 1) {
-        GetCoordinates (faceNumber, exitsFromCube{faceNumber}, pic, posX, posY);
-        //printf("pic = %d, posX = %d, posY = %d\n", pic, posX, posY);
-        abi_CMD_BITMAP (pic, posX, posY, 0);
+    for (new i = 0; i < 2; i++) {
+        GetCoordinates (i, exitsFromCube{faceNumber + i}, pic, posX, posY, angle);
+        abi_CMD_BITMAP (pic, posX, posY, angle);
     }
-    if (exitsFromCube{faceNumber + 1} != 1) {
-        GetCoordinates (faceNumber + 1, exitsFromCube{faceNumber + 1}, pic, posX, posY);
-        //printf("pic = %d, posX = %d, posY = %d\n", pic, posX, posY);
-        abi_CMD_BITMAP (pic, posX, posY, 0);
-    }
-    //abi_CMD_BITMAP (90, 0,0,0);
     new perk = perks{faceNumber/2};
     if (perk > 100) {
         abi_CMD_BITMAP (perk, 120, 150, 0);
@@ -245,28 +203,27 @@ Drawlevel(){
         }
         printf("%d ",exitsFromCube{i});
     }
+    printf("\n");
 }
 */
 onCubeAttach() {
-    GetNeightbours();
-    //CheckLockedFaces();
-    for (new i = 0; i < 3; i++ ) {
+    //printf("Attached\n");
+    for (new i = 0; i < 6; i+=2 ) {
         if (lockedFaces{i} - 1 >= 0) {
-            new cube, face;
-            GetCubeAndFace(lockedFaces{i} - 1, cube, face);
-            new lockedFaceNum = cube * 3 + face;
-            new currFaceNum = currCubePos * 3 + currFacePos;
+            //printf("locked cube = %d and face = %d\n", lockedFaces{i} - 1, lockedFaces{i+1});
+            new idx = abi_TRBL_FindRecordIndex(lockedFaces{i} - 1, lockedFaces{i+1});
             //printf("cube = %d face = %d\n", cube, face);
             //printf("lockedFace-y = %d curFace = %d\n", adjacencyList [curFaceNum]{2}, currCubePos * 3 + currFacePos);
             //printf("lockedFace-x = %d curFace = %d\n", adjacencyList [curFaceNum]{3}, currCubePos * 3 + currFacePos);
-            if (adjacencyList [lockedFaceNum]{2} != (currFaceNum) &&
-               (adjacencyList [lockedFaceNum]{3} != (currFaceNum))) {
-                exitsFromCube {lockedFaceNum * 2}     = GetRandomExit();
-                exitsFromCube {lockedFaceNum * 2 + 1} = GetRandomExit();
-                //printf("unlock xside = %d yside = %d\n", exitsFromCube {curFaceNum * 2}, exitsFromCube {curFaceNum * 2 + 1});
-                // Clear locked face
-                lockedFaces{i} = 0;
-                perks{lockedFaceNum} = GetRandomPerk(113, 124);
+            if ( (abi_leftCubeN(idx)*3 + abi_leftFaceN(idx)) != (currCubePos*3+currFacePos) &&
+                 (abi_topCubeN(idx)*3 + abi_topFaceN(idx)) != (currCubePos*3+currFacePos) ) {
+                    idx = (lockedFaces{i} - 1) * 6 + lockedFaces{i+1} * 2; 
+                    //printf("idx = %d\n", idx);
+                    exitsFromCube {idx} = GetRandomExit();
+                    exitsFromCube {idx + 1} = GetRandomExit();
+                    //printf("new exits x = %d and y = %d\n", exitsFromCube {idx}, exitsFromCube {idx+1});
+                    lockedFaces{i} = lockedFaces{i+1} = 0;
+                    perks{idx/2} = GetRandomPerk(113, 124);
             }
         }
     }
@@ -279,20 +236,7 @@ onCubeAttach() {
     //printf("Cube attached\n");
 }
 
-onCubeDetach() {
-    //printf("Cube Detached\n");
-  //abi_CMD_FILL(0,255,0,0);
-  //abi_CMD_FILL(1,0,255,0);
-  //abi_CMD_FILL(2,0,0,255);
-}
-
-GetCubeAndFace (faceNumber, &cube, &face) {
-    cube = faceNumber / 3;
-    face = faceNumber % 3;
-    //printf("cube = %d, face = %d\n", cube, face);
-}
-
-MoveTo (&posX, &posY, &spdX, &spdY, destination) {
+MoveTo (&posX, &posY, &spdX, &spdY) {
     // Clear wall touches (death counter)
     wallTouch = 0;
 
@@ -303,8 +247,10 @@ MoveTo (&posX, &posY, &spdX, &spdY, destination) {
     posY = temp;
 
     // If we somehow go out of bounds
-    if (posY >= 150) posY = 149;
-    if (posX >= 150) posX = 149;
+    if (posY >= xyMaxBorder) posY = xyMaxBorder - 1;
+    if (posY <= 0) posY = 0;
+    if (posX >= xyMaxBorder) posX = xyMaxBorder - 1;
+    if (posX <= 0) posX = 0;
 
     // Swap speeds
     temp = spdX;
@@ -316,16 +262,15 @@ MoveTo (&posX, &posY, &spdX, &spdY, destination) {
 
     // Clear previous face and lock it
     new currCubeLocked = currCubePos * 6 + 2 * currFacePos;
-    exitsFromCube{currCubeLocked}     = 0;
-    exitsFromCube{currCubeLocked + 1} = 0;
     // Clear perk if didn't get it and lock face
-    perks{currCubeLocked / 2} = 0;
+    exitsFromCube{currCubeLocked} = exitsFromCube{currCubeLocked + 1} = perks{currCubeLocked / 2} = 0;
     
     //printf("lock length %d\n", length);
-    for (new j = 0; j < 3; j++) {
+    for (new j = 0; j < 6; j += 2) {
         if (lockedFaces{j} == 0) {
             // +1 because packed strings cant hold 0 numbers
-            lockedFaces{j} = currCubeLocked / 2 + 1;
+            lockedFaces{j    } = currCubePos + 1;
+            lockedFaces{j + 1} = currFacePos;
             break;
         }
     }
@@ -334,8 +279,14 @@ MoveTo (&posX, &posY, &spdX, &spdY, destination) {
         DrawFace (currCubePos, currFacePos);
         abi_CMD_REDRAW (currFacePos);
     }
+    /*for (new i = 0; i < 6; i += 2) {
+        printf ("cube = %d ",lockedFaces{i    });
+        printf ("face = %d \n",lockedFaces{i + 1});
+    }*/
     // Get new cube and face
-    GetCubeAndFace (destination, currCubePos, currFacePos);
+    //GetCubeAndFace (destination, currCubePos, currFacePos);
+    //currCubePos = newCube;
+    //currFacePos = newFace;
     //printf("change to cube = %d face = %d\n", currCubePos, currFacePos);
 }
 
@@ -348,12 +299,12 @@ ShowScore (finalScore) {
         }
         new offsets{} = {110,100,90,80};
         new digit;
-        abi_CMD_BITMAP (110, 5, 70, 0);
+        abi_CMD_BITMAP (110, 120, 120, 0);
         for (new offset = offsets{power - 1}; finalScore != 0; offset += 25) {
             // Get last digit in number
             digit = finalScore % 10;
             // Print it
-            abi_CMD_BITMAP (100 + digit, offset, 82, 0);
+            abi_CMD_BITMAP (100 + digit, offset, 89, 0);
             // Cut this printed digit and move on
             finalScore /= 10;
         }
@@ -366,6 +317,7 @@ PerkEffect (perkNumber) {
         case 113: {
             // Medkit
             //printf("get medkit\n");
+            //MtCtGoSbCcCfScore += 0x10000000;
             maxTouches++;
         }
         case 114: {
@@ -392,6 +344,7 @@ PerkEffect (perkNumber) {
             //printf("get speed bust\n");
             speedX += GetSign(speedX) * 6;
             speedY += GetSign(speedY) * 6;
+            //MtCtGoSbCcCfScore = (1 << 21) | MtCtGoSbCcCfScore;
             speedPerkActive = 1;
         }
         case 120: {
@@ -404,6 +357,7 @@ PerkEffect (perkNumber) {
             score -= 30;
         }
         case 123: {
+            //MtCtGoSbCcCfScore -= 0x10000000;
             maxTouches--;
         }
     }
@@ -445,6 +399,7 @@ ChecklWallTouch () {
         //printf("decrease speed speedX = %d speedY = %d\n", ABS(speedX), ABS(speedY));
         score++;
         if (ABS(speedX) == 6) {
+            //MtCtGoSbCcCfScore = (1 << 21) | MtCtGoSbCcCfScore;
             speedPerkActive = 0;
         }
     }
@@ -456,7 +411,7 @@ onCubeTick() {
         gameCurTimer += 1;
         if (abi_cubeN == currCubePos) {
             DrawFace (currCubePos, currFacePos);
-            abi_CMD_BITMAP (112, 5, 70, 0);
+            abi_CMD_BITMAP (112, 120, 120, 0);
             abi_CMD_REDRAW (currFacePos);
         }
         return;
@@ -465,38 +420,59 @@ onCubeTick() {
     //printf("abi_cubeN = %d currCubePos = %d\n", abi_cubeN, currCubePos);
     if (!gameover) {
         gameCurTimer += 1;
-        new sideNumber = currCubePos * 3 + currFacePos;
+        new curSideNum = abi_TRBL_FindRecordIndex(currCubePos, currFacePos);
         //printf("positionX = %d positionY = %d\n", positionX, positionY);
-        if ((positionY <= 0)) {
-            new yNeighbour = adjacencyList[sideNumber]{2}; 
-            if (CheckNeighbour (yNeighbour, positionX, positionY, 1)) {
-                //printf("MoveTo -x\n");
-                MoveTo (positionX, positionY, speedY, speedX, yNeighbour);
-            } else {
-                //printf("Can't move through Y block OUTSIDE\n");
+        //printf("speedX = %d speedY = %d\n", speedX, speedY);
+        if (positionY <= 32) {
+            if (speedY < 0) {
+                new yNeighbourCube = abi_topCubeN(curSideNum);
+                new yNeighbourFace = abi_topFaceN(curSideNum);
+                if (CheckNeighbour (yNeighbourCube, yNeighbourFace, positionX, positionY, 1)) {
+                    if (positionY <= 0){// && (speedY < 0) ) {
+                        //printf("MoveTo -x\n");
+                        MoveTo (positionX, positionY, speedY, speedX);
+                        //printf("OLD currCubePos = %d currFacePos = %d\n", currCubePos, currFacePos);
+                        currCubePos = yNeighbourCube;
+                        currFacePos = yNeighbourFace;
+                        //printf("NEW currCubePos = %d currFacePos = %d\n", currCubePos, currFacePos);
+                    }
+                } else {
+                    //printf("Can't move through X block OUTSIDE\n");
+                    ChecklWallTouch();
+                    speedY *= -1;
+                }
+            }
+        }
+        else if ((positionY >= xyMaxBorder) || (positionY <= xyMinBorder + 32) && !CheckFaceExit (exitsFromCube{currCubePos * 6 + currFacePos * 2}, positionX, positionY)&& (speedY < 0)) {
+            //if (!CheckFaceExit (exitsFromCube{currCubePos * 6 + currFacePos * 2}, positionX, positionY) && (speedY < 0)) {
+                //printf("Can't move through X block INSIDE\n");
                 ChecklWallTouch();
                 speedY *= -1;
-            }
-        }
-        else if ((positionY >= 150) || (positionY <= 25) && !CheckFaceExit (exitsFromCube{sideNumber * 2}, positionX, positionY) && (speedY < 0)) {
-            //printf("Can't move through Y block INSIDE\n");
-            ChecklWallTouch();
-            speedY *= -1;
         }
         // Decreasing Y we cross X
-        else if (positionX <= 0) {
-            new xNeighbour = adjacencyList[sideNumber]{3}; 
-            if (CheckNeighbour (xNeighbour, positionY, positionX, 0)) {
-                //printf("MoveTo -y\n");
-                MoveTo (positionX, positionY, speedX, speedY, xNeighbour);
-            } else {
-                //printf("Can't move through X block OUTSIDE\n");
-                ChecklWallTouch();
-                speedX *= -1;
+        if (positionX <= 32) {
+            if (speedX < 0) {
+                new xNeighbourCube = abi_leftCubeN(curSideNum);
+                new xNeighbourFace = abi_leftFaceN(curSideNum);
+                if (CheckNeighbour (xNeighbourCube, xNeighbourFace, positionY, positionX, 0)) {
+                    if ((positionX <= 0)){// && (speedX < 0)) {
+                        //printf("MoveTo through -y\n");
+                        //printf("OLD currCubePos = %d currFacePos = %d\n", currCubePos, currFacePos);
+                        MoveTo (positionX, positionY, speedX, speedY);
+                        currCubePos = xNeighbourCube;
+                        currFacePos = xNeighbourFace;
+                        //printf("NEW currCubePos = %d currFacePos = %d\n", currCubePos, currFacePos);
+                    }
+                } else {
+                    //printf("Can't move through Y block OUTSIDE\n");
+                    ChecklWallTouch();
+                    speedX *= -1;
+                }
             }
         }
-        else if ((positionX >= 150) || (positionX <= 25) && !CheckFaceExit (exitsFromCube{sideNumber * 2 + 1}, positionY, positionX) && (speedX < 0)) {
-            //printf("Can't move through X block INSIDE\n");
+        else if ((positionX >= xyMaxBorder) || (positionX <= xyMinBorder + 32) && !CheckFaceExit (exitsFromCube{currCubePos * 6 + currFacePos * 2 + 1}, positionY, positionX)){
+        //if (!CheckFaceExit (exitsFromCube{currCubePos * 6 + currFacePos * 2 + 1}, positionY, positionX) && (speedX < 0)) {
+            //printf("Can't move through Y block INSIDE\n");
             ChecklWallTouch();
             speedX *= -1;
         }
@@ -506,13 +482,15 @@ onCubeTick() {
         if ((wallTouch == maxTouches) || (score < 0)) {
             // Gameover
             gameover = 1;
+            //MtCtGoSbCcCfScore = (1 << 22) | MtCtGoSbCcCfScore;
             startBallEndPic = 111;
-            positionX = 20;
-            positionY = 70;
+            positionX = 120;
+            positionY = 120;
         }
 
         if (gameCurTimer >= gameEndTimer) {
             gameover = 1;
+            //MtCtGoSbCcCfScore = (1 << 22) | MtCtGoSbCcCfScore;
             ShowScore(score);
             return;
         }
@@ -530,36 +508,57 @@ onCubeTick() {
 }
 
 run(const pkt[], size, const src[]) {
-    //printf("run function! of cube: %d\n", abi_cubeN);
-    //abi_LogRcvPkt(pkt, size, src); // debug
-
-    switch(abi_GetPktByte(pkt, 0)) {
+    switch(abi_ByteN(pkt, 0)) {
         case CMD_TICK: {
             onCubeTick();
-            //printf("[%s] CMD_TICK\n", src);
         }
 
-        case CMD_ATTACH: {
-            //printf("[%s] CMD_ATTACH\n", src);
-            abi_attached = 1;
-            abi_DeserializePositonsMatrix(pkt);
-            abi_LogPositionsMatrix(); // DEBUG
+        case CMD_GEO: {
+            abi_TRBL_Deserialize(pkt);
             if (!gameover) {
                 onCubeAttach();
             }
         }
-
-        case CMD_DETACH: {
-            //printf("[%s] CMD_DETACH\n", src);
-            abi_attached = 0;
-            onCubeDetach();
-        }
     }
+}
+
+bin(n)
+{
+    for (new i = 1 << 30; i > 0; i = i / 2) {
+        //printf ("testByte");
+        (n & i) ? printf("1"): printf("0");
+    }
+    printf("\n");
 }
 
 main() {
     GenerateRandomLevel();
     //Drawlevel();
+    /*new testByte = 0;
+    testByte =(4 << 28);// | (7 << 24) | (1 << 22) | (1 << 21) | (7 << 18) | (2 << 16) | 50;//(240 << 24) | (240 << 16) | (240 << 8) | 240;
+    bin (testByte);
+    testByte += 0x10000000
+    bin (testByte);
+    printf ("testByte = %d\n", (testByte));
+    return;*/
+    //new testByte{6};
+    /*for (new i = 8; i < 24; i+=8) {
+        testByte = 54 | (testByte << 8);//54 = 0011 0110
+        testByte = 32 | (testByte << 8);//32 = 0010 0000
+        testByte = 41 | (testByte << 8);//41 = 0010 1001
+    }*/
+    /*printf ("testByte = %d, size = %\n", testByte, sizeof(testByte));
+    bin (testByte);
+    for (new i = 0; i <24;i+=8){
+        printf ("%d ",(testByte >> i) & 0xFF);
+    }*/
+    /*
+    printf ("testByte = %d, size = %\n", testByte, sizeof(testByte));
+    testByte = testByte << 1;
+    printf ("testByte = %d, size = %\n", testByte, sizeof(testByte));
+    testByte = testByte << 1;
+    printf ("testByte = %d, size = %\n", testByte, sizeof(testByte));
+    */
     new opt{100};
     argindex(0, opt);
     abi_cubeN = strval(opt);
