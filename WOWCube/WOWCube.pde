@@ -913,7 +913,6 @@ class CPawnLogic // interface to/from Pawn
             PImage crop = res[resID].get(x_ofs,y_ofs,lv_width,lv_height);
             x = x - crop.width/2;
             y = y - crop.height/2;
-            if ((angle == 270) || (angle==90))
             if (angle == 270)
             {
               y = unhex(hex(c.pkt[4])+hex(c.pkt[3]))-crop.height/2;
@@ -922,13 +921,13 @@ class CPawnLogic // interface to/from Pawn
             }
             if (angle == 180)
             {
-              x = 240 - (unhex(hex(c.pkt[4])+hex(c.pkt[3]))-crop.width/2);
+              x = 240 - (unhex(hex(c.pkt[4])+hex(c.pkt[3]))+crop.width/2);
               y = 240 - (unhex(hex(c.pkt[6])+hex(c.pkt[5]))+crop.height/2);
             }
             if (angle == 90)
             {
               y = 240 - (unhex(hex(c.pkt[4])+hex(c.pkt[3]))+crop.height/2);
-              x = 240 - (unhex(hex(c.pkt[6])+hex(c.pkt[5]))-crop.width/2);
+              x = 240 - (unhex(hex(c.pkt[6])+hex(c.pkt[5]))+crop.width/2);
             }
 
             g.beginDraw();
@@ -1081,7 +1080,7 @@ void draw()
   }
 
   logic.draw();
-  cs.drawOverlays(true, true, false, false);
+  cs.drawOverlays(false, false, false, false);
  
   pushMatrix();
     translate(2.2*FSP, 2.2*FSP, -3.0*FSP);
