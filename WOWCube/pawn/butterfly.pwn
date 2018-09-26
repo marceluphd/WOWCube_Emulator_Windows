@@ -137,18 +137,18 @@ onTick()
       if (isLeftFure(thisFigure))
         switch(thisFigureAngle)
         {
-          case   0: {abi_CMD_BITMAP(thisFigure+isDraw, 240-(75-isDraw*25/2), 120, thisFigureAngle); }
-          case  90: {abi_CMD_BITMAP(thisFigure+isDraw, 120, 75-isDraw*25/2, thisFigureAngle); }
-          case 180: {abi_CMD_BITMAP(thisFigure+isDraw, 75-isDraw*25/2, 120, thisFigureAngle); }
-          case 270: {abi_CMD_BITMAP(thisFigure+isDraw, 120, 240-(75-isDraw*25/2), thisFigureAngle); }
+          case   0: {abi_CMD_BITMAP(thisFigure+isDraw, 240-(134/2-isDraw*9/2), 120, thisFigureAngle); }
+          case  90: {abi_CMD_BITMAP(thisFigure+isDraw, 120, 134/2-isDraw*9/2, thisFigureAngle); }
+          case 180: {abi_CMD_BITMAP(thisFigure+isDraw, 134/2-isDraw*9/2, 120, thisFigureAngle); }
+          case 270: {abi_CMD_BITMAP(thisFigure+isDraw, 120, 240-(134/2-isDraw*9/2), thisFigureAngle); }
         }
       else if (isRightFure(thisFigure))
       switch(thisFigureAngle)
         {
-          case   0: {abi_CMD_BITMAP(thisFigure+isDraw, 75-isDraw*25/2, 120, thisFigureAngle); }
-          case  90: {abi_CMD_BITMAP(thisFigure+isDraw, 120, 240-(75-isDraw*25/2), thisFigureAngle); }
-          case 180: {abi_CMD_BITMAP(thisFigure+isDraw, 240-(75-isDraw*25/2), 120, thisFigureAngle); }
-          case 270: {abi_CMD_BITMAP(thisFigure+isDraw, 120, 75-isDraw*25/2, thisFigureAngle); }
+          case   0: {abi_CMD_BITMAP(thisFigure+isDraw, 134/2-isDraw*9/2, 120, thisFigureAngle); }
+          case  90: {abi_CMD_BITMAP(thisFigure+isDraw, 120, 240-(134/2-isDraw*9/2), thisFigureAngle); }
+          case 180: {abi_CMD_BITMAP(thisFigure+isDraw, 240-(134/2-isDraw*9/2), 120, thisFigureAngle); }
+          case 270: {abi_CMD_BITMAP(thisFigure+isDraw, 120, 134/2-isDraw*9/2, thisFigureAngle); }
         }
     }
     printf("face=%d flys=%d\n",thisFaceN,flys);
